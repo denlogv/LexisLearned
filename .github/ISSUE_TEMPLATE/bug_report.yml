@@ -1,0 +1,32 @@
+name: Bug report
+description: Something in LexisLearned does not work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Shown on the release page you installed from, for example 0.1.0-pre1.
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Device and Android version
+      placeholder: Pixel 7, Android 14
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: >
+        Screenshots help. For a book that is split badly, the titles and word counts of the sections are more useful than the
+        book itself. Do not attach copyrighted books, and never paste an API key.

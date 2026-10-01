@@ -1,0 +1,8 @@
+# Every change needs the maintainer's review (see docs/REPOSITORY-SETTINGS.md).
+*                @denlogv
+
+# Changes to the rules that AI agents and CI enforce deserve a second look.
+/AGENTS.md       @denlogv
+/.github/        @denlogv
+/config/         @denlogv
+/detekt-rules/   @denlogv
