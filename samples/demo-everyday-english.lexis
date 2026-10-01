@@ -1,0 +1,612 @@
+{
+  "schemaVersion": 1,
+  "deck": {
+    "id": "demo-everyday-english",
+    "title": "Everyday English: Travel and Work",
+    "nativeTitle": "Повседневный английский: путешествия и работа",
+    "chapters": [
+      {
+        "id": "ch-at-the-airport",
+        "title": "At the airport",
+        "nativeTitle": "В аэропорту",
+        "cards": [
+          {
+            "id": "demo-1",
+            "front": {
+              "text": "luggage",
+              "transcription": "ˈlʌɡɪdʒ",
+              "example": "Please keep your luggage with you at all times.",
+              "gender": null
+            },
+            "back": {
+              "text": "багаж",
+              "transcription": null,
+              "example": "Пожалуйста, не оставляйте багаж без присмотра.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-2",
+            "front": {
+              "text": "boarding pass",
+              "transcription": "ˈbɔːdɪŋ pɑːs",
+              "example": "Show your boarding pass at the gate.",
+              "gender": null
+            },
+            "back": {
+              "text": "посадочный талон",
+              "transcription": null,
+              "example": "Покажите посадочный талон на выходе.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-3",
+            "front": {
+              "text": "layover",
+              "transcription": "ˈleɪəʊvə",
+              "example": "We have a four-hour layover in Istanbul.",
+              "gender": null
+            },
+            "back": {
+              "text": "пересадка",
+              "transcription": null,
+              "example": "У нас четырёхчасовая пересадка в Стамбуле.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-4",
+            "front": {
+              "text": "to check in",
+              "transcription": "tə tʃek ɪn",
+              "example": "You can check in online the day before.",
+              "gender": null
+            },
+            "back": {
+              "text": "регистрироваться на рейс",
+              "transcription": null,
+              "example": "Зарегистрироваться можно онлайн за день до вылета.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-5",
+            "front": {
+              "text": "customs",
+              "transcription": "ˈkʌstəmz",
+              "example": "We waited in a long line at customs.",
+              "gender": null
+            },
+            "back": {
+              "text": "таможня",
+              "transcription": null,
+              "example": "Мы долго стояли в очереди на таможне.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-6",
+            "front": {
+              "text": "delay",
+              "transcription": "dɪˈleɪ",
+              "example": "The storm caused a two-hour delay.",
+              "gender": null
+            },
+            "back": {
+              "text": "задержка",
+              "transcription": null,
+              "example": "Из-за шторма рейс задержали на два часа.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          }
+        ],
+        "part": {
+          "id": "part-travel",
+          "title": "Travel",
+          "nativeTitle": "Путешествия"
+        }
+      },
+      {
+        "id": "ch-hotels-and-sightseeing",
+        "title": "Hotels and sightseeing",
+        "nativeTitle": "Отели и достопримечательности",
+        "cards": [
+          {
+            "id": "demo-7",
+            "front": {
+              "text": "reservation",
+              "transcription": "ˌrezəˈveɪʃn",
+              "example": "I made a reservation for two nights.",
+              "gender": null
+            },
+            "back": {
+              "text": "бронирование",
+              "transcription": null,
+              "example": "Я забронировал номер на две ночи.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-8",
+            "front": {
+              "text": "sightseeing",
+              "transcription": "ˈsaɪtsiːɪŋ",
+              "example": "We spent the morning sightseeing in the old town.",
+              "gender": null
+            },
+            "back": {
+              "text": "осмотр достопримечательностей",
+              "transcription": null,
+              "example": "Утро мы посвятили осмотру достопримечательностей старого города.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-9",
+            "front": {
+              "text": "souvenir",
+              "transcription": "ˌsuːvəˈnɪə",
+              "example": "She bought a small souvenir for each friend.",
+              "gender": null
+            },
+            "back": {
+              "text": "сувенир",
+              "transcription": null,
+              "example": "Она купила каждому другу по небольшому сувениру.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-10",
+            "front": {
+              "text": "itinerary",
+              "transcription": "aɪˈtɪnərəri",
+              "example": "Our itinerary includes three cities in five days.",
+              "gender": null
+            },
+            "back": {
+              "text": "маршрут, программа поездки",
+              "transcription": null,
+              "example": "В нашей программе три города за пять дней.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-11",
+            "front": {
+              "text": "accommodation",
+              "transcription": "əˌkɒməˈdeɪʃn",
+              "example": "Accommodation in the centre is expensive in summer.",
+              "gender": null
+            },
+            "back": {
+              "text": "жильё, размещение",
+              "transcription": null,
+              "example": "Летом жильё в центре стоит дорого.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-12",
+            "front": {
+              "text": "to stroll",
+              "transcription": "tə strəʊl",
+              "example": "We strolled along the river after dinner.",
+              "gender": null
+            },
+            "back": {
+              "text": "прогуливаться",
+              "transcription": null,
+              "example": "После ужина мы прогулялись вдоль реки.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          }
+        ],
+        "part": {
+          "id": "part-travel",
+          "title": "Travel",
+          "nativeTitle": "Путешествия"
+        }
+      },
+      {
+        "id": "ch-the-office",
+        "title": "The office",
+        "nativeTitle": "Офис",
+        "cards": [
+          {
+            "id": "demo-13",
+            "front": {
+              "text": "deadline",
+              "transcription": "ˈdedlaɪn",
+              "example": "The deadline for the report is Friday.",
+              "gender": null
+            },
+            "back": {
+              "text": "крайний срок",
+              "transcription": null,
+              "example": "Крайний срок сдачи отчёта — пятница.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-14",
+            "front": {
+              "text": "colleague",
+              "transcription": "ˈkɒliːɡ",
+              "example": "My colleague helped me with the presentation.",
+              "gender": null
+            },
+            "back": {
+              "text": "коллега",
+              "transcription": null,
+              "example": "Коллега помог мне с презентацией.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-15",
+            "front": {
+              "text": "to delegate",
+              "transcription": "tə ˈdelɪɡeɪt",
+              "example": "A good manager knows when to delegate.",
+              "gender": null
+            },
+            "back": {
+              "text": "делегировать",
+              "transcription": null,
+              "example": "Хороший руководитель знает, когда нужно делегировать.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-16",
+            "front": {
+              "text": "workload",
+              "transcription": "ˈwɜːkləʊd",
+              "example": "Her workload doubled after the merger.",
+              "gender": null
+            },
+            "back": {
+              "text": "рабочая нагрузка",
+              "transcription": null,
+              "example": "После слияния её нагрузка удвоилась.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-17",
+            "front": {
+              "text": "to commute",
+              "transcription": "tə kəˈmjuːt",
+              "example": "I commute by train every morning.",
+              "gender": null
+            },
+            "back": {
+              "text": "ездить на работу",
+              "transcription": null,
+              "example": "Я каждое утро езжу на работу на поезде.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-18",
+            "front": {
+              "text": "overtime",
+              "transcription": "ˈəʊvətaɪm",
+              "example": "They paid extra for the overtime.",
+              "gender": null
+            },
+            "back": {
+              "text": "сверхурочная работа",
+              "transcription": null,
+              "example": "За сверхурочные им доплатили.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          }
+        ],
+        "part": {
+          "id": "part-work",
+          "title": "Work",
+          "nativeTitle": "Работа"
+        }
+      },
+      {
+        "id": "ch-meetings-and-projects",
+        "title": "Meetings and projects",
+        "nativeTitle": "Встречи и проекты",
+        "cards": [
+          {
+            "id": "demo-19",
+            "front": {
+              "text": "agenda",
+              "transcription": "əˈdʒendə",
+              "example": "Let's go through the agenda first.",
+              "gender": null
+            },
+            "back": {
+              "text": "повестка дня",
+              "transcription": null,
+              "example": "Сначала давайте пройдёмся по повестке дня.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-20",
+            "front": {
+              "text": "milestone",
+              "transcription": "ˈmaɪlstəʊn",
+              "example": "We reached an important milestone this week.",
+              "gender": null
+            },
+            "back": {
+              "text": "ключевой этап",
+              "transcription": null,
+              "example": "На этой неделе мы достигли важного этапа.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-21",
+            "front": {
+              "text": "to brainstorm",
+              "transcription": "tə ˈbreɪnstɔːm",
+              "example": "The team brainstormed ideas for the campaign.",
+              "gender": null
+            },
+            "back": {
+              "text": "устраивать мозговой штурм",
+              "transcription": null,
+              "example": "Команда устроила мозговой штурм по кампании.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-22",
+            "front": {
+              "text": "feedback",
+              "transcription": "ˈfiːdbæk",
+              "example": "I appreciate your honest feedback.",
+              "gender": null
+            },
+            "back": {
+              "text": "обратная связь",
+              "transcription": null,
+              "example": "Я ценю вашу откровенную обратную связь.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-23",
+            "front": {
+              "text": "stakeholder",
+              "transcription": "ˈsteɪkhəʊldə",
+              "example": "Every stakeholder must approve the plan.",
+              "gender": null
+            },
+            "back": {
+              "text": "заинтересованная сторона",
+              "transcription": null,
+              "example": "План должны одобрить все заинтересованные стороны.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          },
+          {
+            "id": "demo-24",
+            "front": {
+              "text": "to postpone",
+              "transcription": "tə pəˈspəʊn",
+              "example": "The meeting was postponed until Monday.",
+              "gender": null
+            },
+            "back": {
+              "text": "откладывать, переносить",
+              "transcription": null,
+              "example": "Встречу перенесли на понедельник.",
+              "gender": null
+            },
+            "progress": {
+              "reps": 0,
+              "ease": 2.5,
+              "intervalDays": 0,
+              "dueAt": null,
+              "lapses": 0,
+              "sessionsDone": 0
+            }
+          }
+        ],
+        "part": {
+          "id": "part-work",
+          "title": "Work",
+          "nativeTitle": "Работа"
+        }
+      }
+    ],
+    "frontLang": "en",
+    "backLang": "ru"
+  }
+}
