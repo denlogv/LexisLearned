@@ -1,0 +1,26 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- back card, tilted -->
+    <group android:pivotX="54" android:pivotY="54" android:rotation="-12">
+        <path
+            android:fillColor="#AEB9F0"
+            android:pathData="M38,30 H70 A8,8 0 0 1 78,38 V70 A8,8 0 0 1 70,78 H38 A8,8 0 0 1 30,70 V38 A8,8 0 0 1 38,30 Z" />
+    </group>
+    <!-- front card -->
+    <group android:pivotX="54" android:pivotY="54" android:rotation="6">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M38,30 H70 A8,8 0 0 1 78,38 V70 A8,8 0 0 1 70,78 H38 A8,8 0 0 1 30,70 V38 A8,8 0 0 1 38,30 Z" />
+        <!-- the letter L -->
+        <path
+            android:fillColor="#3B4A8F"
+            android:pathData="M41,40 H48 V63 H65 V70 H41 Z" />
+        <!-- highlighter dot -->
+        <path
+            android:fillColor="#FFC53D"
+            android:pathData="M67,41 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+    </group>
+</vector>

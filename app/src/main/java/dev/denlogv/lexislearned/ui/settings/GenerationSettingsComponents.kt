@@ -1,0 +1,111 @@
+package dev.denlogv.lexislearned.ui.settings
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
+import dev.denlogv.lexislearned.data.Prefs
+import dev.denlogv.lexislearned.data.Provider
+
+/**
+ * The settings for creating decks from EPUBs: provider, API key, model and the user's language.
+ *
+ * @param prefs the current settings.
+ * @param vm the settings view model.
+ */
+@Composable
+fun GenerationSection(prefs: Prefs, vm: SettingsViewModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Deck generation from EPUB", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+        Hint("Chapters are sent to the AI provider you choose, using your own API key. The key is stored encrypted on this device only.")
+        ProviderAndKey(prefs, vm)
+        ModelPicker(prefs, vm)
+        OutlinedTextField(
+            prefs.targetLang,
+            vm.settings::setTargetLang,
+            Modifier.fillMaxWidth(),
+            label = { Text("Your language (ISO code, e.g. ru, de, es)") },
+            singleLine = true,
+        )
+    }
+}
+
+/**
+ * The provider chips and the API key field with its buttons.
+ *
+ * @param prefs the current settings.
+ * @param vm the settings view model.
+ */
+@Composable
+private fun ProviderAndKey(prefs: Prefs, vm: SettingsViewModel) {
+    var key by remember(prefs.provider) { mutableStateOf("") }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Provider.entries.forEach { p -> FilterChip(prefs.provider == p, { vm.settings.setProvider(p) }, { Text(p.label) }) }
+    }
+    OutlinedTextField(
+        key,
+        { key = it },
+        Modifier.fillMaxWidth(),
+        label = { Text(if (prefs.hasApiKey) "API key (saved — enter a new one to replace)" else "API key") },
+        singleLine = true,
+        visualTransformation = PasswordVisualTransformation(),
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Button({
+            vm.saveKey(key)
+            key = ""
+        }, enabled = key.isNotBlank()) { Text("Save key") }
+        if (prefs.hasApiKey) OutlinedButton(vm::removeKey) { Text("Remove key") }
+    }
+}
+
+/**
+ * The model drop-down; the user can only pick from the list the provider returns.
+ *
+ * @param prefs the current settings.
+ * @param vm the settings view model.
+ */
+@Composable
+private fun ModelPicker(prefs: Prefs, vm: SettingsViewModel) {
+    val ui by vm.models.collectAsState()
+    var menu by remember { mutableStateOf(false) }
+    Text("Model", style = MaterialTheme.typography.labelLarge)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f)) {
+            OutlinedButton({ menu = true }, Modifier.fillMaxWidth(), enabled = ui.models.isNotEmpty()) {
+                Text(modelButtonLabel(ui, prefs.model), maxLines = 1)
+            }
+            DropdownMenu(menu, { menu = false }) {
+                ui.models.forEach { m ->
+                    DropdownMenuItem({ Text(modelMenuLabel(m)) }, {
+                        vm.selectModel(m.id)
+                        menu = false
+                    })
+                }
+            }
+        }
+        if (prefs.hasApiKey) OutlinedButton(vm::refreshModels, enabled = !ui.loading) { Text(if (ui.loading) "…" else "Refresh") }
+    }
+    ui.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+    if (!prefs.hasApiKey) Hint("Save an API key to load the models available to it.")
+}
