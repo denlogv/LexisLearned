@@ -1,0 +1,43 @@
+# Project rules on top of detekt's defaults (see AGENTS.md).
+complexity:
+  LongMethod:
+    threshold: 30
+  LargeClass:
+    threshold: 200
+  LongParameterList:
+    functionThreshold: 8
+    constructorThreshold: 10
+    ignoreDefaultParameters: true
+  TooManyFunctions:
+    thresholdInClasses: 20
+    thresholdInFiles: 25
+    thresholdInObjects: 20
+    ignoreAnnotated: ['Dao'] # A DAO is a list of queries; splitting it only to hit a number would hide the structure.
+  CyclomaticComplexMethod:
+    threshold: 12
+style:
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    maxLineLength: 140
+  ReturnCount:
+    max: 4
+  UnusedPrivateMember:
+    active: true
+  WildcardImport:
+    active: true
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+comments:
+  OutdatedDocumentation:
+    active: true
+    matchDeclarationsOrder: false
+    matchTypeParameters: false
+    allowParamOnConstructorProperties: true
+lexis:
+  KDocCompleteness:
+    active: true
+    excludes: ['**/test/**']
