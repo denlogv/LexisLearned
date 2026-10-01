@@ -1,0 +1,26 @@
+name: Commits
+
+# The history of main is curated (see AGENTS.md): every commit of a pull request must follow Conventional Commits, be
+# free of fixup/squash/wip leftovers, and the branch must be linear.
+on:
+  pull_request:
+
+concurrency:
+  group: commits-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  messages:
+    name: Commit messages
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Check the commits of this pull request
+        run: tools/check-commits.sh "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}"
