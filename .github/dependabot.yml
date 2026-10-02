@@ -22,3 +22,8 @@ updates:
       interval: weekly
     commit-message:
       prefix: "ci(deps)"
+    groups:
+      # init and analyze must run the same CodeQL bundle, so they move together.
+      codeql:
+        patterns:
+          - "github/codeql-action*"
