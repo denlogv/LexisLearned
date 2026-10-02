@@ -38,7 +38,7 @@ detekt-test = { module = "io.gitlab.arturbosch.detekt:detekt-test", version.ref 
 coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 
 [plugins]
-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "12.1.2" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "14.2.0" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
