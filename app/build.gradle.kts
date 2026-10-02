@@ -4,7 +4,6 @@ import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 plugins {
     jacoco
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -37,7 +36,7 @@ base.archivesName.set("LexisLearned")
 
 android {
     namespace = "dev.denlogv.lexislearned"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "dev.denlogv.lexislearned"
@@ -84,9 +83,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
