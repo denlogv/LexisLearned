@@ -10,9 +10,11 @@ import kotlin.concurrent.thread
 /**
  * A tiny local HTTP server for tests, built on plain sockets. Every request is answered by [respond] and recorded.
  *
+ * @param contentType the Content-Type of every answer, or null to send none.
  * @param respond decides the answer to a request, given its method and path: (status, body).
  */
-class TestServer(private val respond: (method: String, path: String) -> Pair<Int, String>) : AutoCloseable {
+class TestServer(private val contentType: String? = null, private val respond: (method: String, path: String) -> Pair<Int, String>) :
+    AutoCloseable {
     /**
      * One recorded request.
      *
@@ -55,7 +57,8 @@ class TestServer(private val respond: (method: String, path: String) -> Pair<Int
         val (code, text) = respond(method, path)
         val bytes = text.toByteArray()
         it.getOutputStream().apply {
-            write("HTTP/1.1 $code X\r\nContent-Length: ${bytes.size}\r\nConnection: close\r\n\r\n".toByteArray())
+            val type = contentType?.let { type -> "Content-Type: $type\r\n" }.orEmpty()
+            write("HTTP/1.1 $code X\r\n${type}Content-Length: ${bytes.size}\r\nConnection: close\r\n\r\n".toByteArray())
             write(bytes)
             flush()
         }

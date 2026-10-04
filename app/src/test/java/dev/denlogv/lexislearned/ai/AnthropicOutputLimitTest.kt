@@ -9,14 +9,14 @@ import org.junit.Test
 /** The Anthropic client asks for the model's own output maximum instead of a number of its own. */
 class AnthropicOutputLimitTest {
     private val fast = HttpJson(retryDelayMs = 1)
-    private val reply = """{"content":[{"type":"text","text":"ok"}],"stop_reason":"end_turn"}"""
+    private val reply = anthropicStream("ok")
 
     private fun TestServer.maxTokensSent(): List<String> = requests.filter { it.path == "/v1/messages" }
         .map { Regex(""""max_tokens":(\d+)""").find(it.body)!!.groupValues[1] }
 
     @Test
     fun requestsAskForTheMaximumTheModelReports() = runBlocking {
-        TestServer { _, path -> 200 to if (path == "/v1/models/m") """{"max_tokens":64000}""" else reply }.use { server ->
+        TestServer(EVENT_STREAM) { _, path -> 200 to if (path == "/v1/models/m") """{"max_tokens":64000}""" else reply }.use { server ->
             val client = AnthropicClient("k", "m", server.url, fast)
             client.complete("s", "u")
             client.complete("s", "u")
@@ -27,7 +27,15 @@ class AnthropicOutputLimitTest {
 
     @Test
     fun anUnknownLimitFallsBackAndIsLookedUpAgainNextTime() = runBlocking {
-        TestServer { _, path -> if (path == "/v1/models/m") 404 to """{"error":{"message":"no"}}""" else 200 to reply }.use { server ->
+        TestServer(EVENT_STREAM) { _, path ->
+            if (path ==
+                "/v1/models/m"
+            ) {
+                404 to """{"error":{"message":"no"}}"""
+            } else {
+                200 to reply
+            }
+        }.use { server ->
             val client = AnthropicClient("k", "m", server.url, fast)
             client.complete("s", "u")
             client.complete("s", "u")
@@ -38,7 +46,15 @@ class AnthropicOutputLimitTest {
 
     @Test
     fun aModelWithoutAReportedLimitUsesTheFallback() = runBlocking {
-        TestServer { _, path -> 200 to if (path == "/v1/models/m") """{"id":"m","max_tokens":null}""" else reply }.use { server ->
+        TestServer(EVENT_STREAM) { _, path ->
+            200 to if (path ==
+                "/v1/models/m"
+            ) {
+                """{"id":"m","max_tokens":null}"""
+            } else {
+                reply
+            }
+        }.use { server ->
             AnthropicClient("k", "m", server.url, fast).complete("s", "u")
             assertEquals(listOf("8192"), server.maxTokensSent())
         }
@@ -57,8 +73,8 @@ class AnthropicOutputLimitTest {
 
     @Test
     fun aReplyCutOffAtTheLimitIsReportedAsSuch() {
-        val cutOff = """{"content":[{"type":"text","text":"{\"cards\":[{\"a\":"}],"stop_reason":"max_tokens"}"""
-        TestServer { _, path -> 200 to if (path == "/v1/models/m") """{"max_tokens":100}""" else cutOff }.use { server ->
+        val cutOff = anthropicStream("{", stopReason = "max_tokens")
+        TestServer(EVENT_STREAM) { _, path -> 200 to if (path == "/v1/models/m") """{"max_tokens":100}""" else cutOff }.use { server ->
             val failure = assertThrows(LlmException::class.java) {
                 runBlocking { AnthropicClient("k", "m", server.url, fast).complete("s", "u") }
             }

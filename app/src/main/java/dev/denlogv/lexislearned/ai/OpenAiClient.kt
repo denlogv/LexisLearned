@@ -1,12 +1,7 @@
 package dev.denlogv.lexislearned.ai
 
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
 /**
@@ -48,19 +43,14 @@ class OpenAiClient internal constructor(
      * @param system the system prompt.
      * @param user the user message.
      * @return the content of the first choice.
-     * @throws LlmException if the request fails or the reply is empty.
+     * @throws LlmException if the request fails, the reply is empty or the reply was cut off at the model's output limit.
      */
-    override suspend fun complete(system: String, user: String): String {
-        val response = try {
-            request(system, user)
-        } catch (e: LlmException) {
-            if (!jsonMode || !rejectsResponseFormat(e)) throw e
-            jsonMode = false
-            request(system, user)
-        }
-        return response["choices"]?.jsonArray?.firstOrNull()?.jsonObject
-            ?.get("message")?.jsonObject?.get("content")?.jsonPrimitive?.contentOrNull
-            ?.takeIf { it.isNotBlank() } ?: throw LlmException("Empty response from the server")
+    override suspend fun complete(system: String, user: String): String = try {
+        request(system, user)
+    } catch (e: LlmException) {
+        if (!jsonMode || !rejectsResponseFormat(e)) throw e
+        jsonMode = false
+        request(system, user)
     }
 
     /**
@@ -68,14 +58,14 @@ class OpenAiClient internal constructor(
      *
      * @param system the system prompt.
      * @param user the user message.
-     * @return the parsed reply.
+     * @return the content of the reply, read as it is streamed.
      * @throws LlmException if the request fails.
      */
-    private suspend fun request(system: String, user: String): JsonObject = http.post(
-        "$baseUrl/chat/completions",
-        mapOf("authorization" to "Bearer $apiKey"),
-        buildJsonObject {
+    private suspend fun request(system: String, user: String): String {
+        val reply = OpenAiReply()
+        val body = buildJsonObject {
             put("model", model)
+            put("stream", true)
             if (jsonMode) put("response_format", buildJsonObject { put("type", "json_object") })
             put(
                 "messages",
@@ -84,8 +74,10 @@ class OpenAiClient internal constructor(
                     add(message("user", user))
                 },
             )
-        },
-    )
+        }
+        http.stream("$baseUrl/chat/completions", mapOf("authorization" to "Bearer $apiKey"), body, reply::accept)
+        return reply.result()
+    }
 
     /**
      * Whether a failure says that the server does not accept `response_format`: some compatible servers, for example LM Studio,

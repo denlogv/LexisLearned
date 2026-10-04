@@ -1,11 +1,7 @@
 package dev.denlogv.lexislearned.ai
 
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
 /**
@@ -34,30 +30,24 @@ class AnthropicClient internal constructor(
     constructor(apiKey: String, model: String) : this(apiKey, model, DEFAULT_BASE_URL, HttpJson())
 
     /**
-     * Sends a system and a user message to the Messages API.
+     * Sends a system and a user message to the Messages API and reads the reply as it is streamed.
      *
      * @param system the system prompt.
      * @param user the user message.
-     * @return the concatenated text blocks of the reply.
+     * @return the text of the reply.
      * @throws LlmException if the request fails, the reply has no text or the reply was cut off at the model's output limit.
      */
     override suspend fun complete(system: String, user: String): String {
-        val response = http.post(
-            "$baseUrl/v1/messages",
-            headers,
-            buildJsonObject {
-                put("model", model)
-                put("max_tokens", outputLimit.get())
-                put("system", system)
-                put("messages", buildJsonArray { add(message("user", user)) })
-            },
-        )
-        if (response["stop_reason"]?.jsonPrimitive?.contentOrNull == "max_tokens") {
-            throw LlmException("The reply was cut off because it reached the model's output limit")
+        val reply = AnthropicReply()
+        val body = buildJsonObject {
+            put("model", model)
+            put("max_tokens", outputLimit.get())
+            put("stream", true)
+            put("system", system)
+            put("messages", buildJsonArray { add(message("user", user)) })
         }
-        return (response["content"] as? JsonArray)
-            ?.joinToString("") { it.jsonObject["text"]?.jsonPrimitive?.contentOrNull.orEmpty() }
-            ?.takeIf { it.isNotBlank() } ?: throw LlmException("Empty response from Anthropic")
+        http.stream("$baseUrl/v1/messages", headers, body, reply::accept)
+        return reply.result()
     }
 
     /** Constants of the client. */

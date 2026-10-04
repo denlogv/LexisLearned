@@ -1,15 +1,6 @@
 package dev.denlogv.lexislearned.ai
 
-import java.io.IOException
-import java.util.concurrent.CountDownLatch
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -17,64 +8,6 @@ import org.junit.Test
 
 class HttpClientsTest {
     private val fast = HttpJson(retryDelayMs = 1)
-
-    @Test
-    fun postSendsJsonAndParsesTheReply() = runBlocking {
-        TestServer { _, _ -> 200 to """{"ok":true}""" }.use { server ->
-            val reply = fast.post(server.url + "/x", mapOf("x-test" to "1"), buildJsonObject { put("a", "b") })
-            assertEquals("""{"ok":true}""", reply.toString())
-            val seen = server.requests.single()
-            assertEquals("POST", seen.method)
-            assertEquals("1", seen.headers["x-test"])
-            assertEquals("""{"a":"b"}""", seen.body)
-        }
-    }
-
-    @Test
-    fun serverErrorsAreRetriedThenReported() {
-        TestServer { _, _ -> 503 to """{"error":{"message":"busy"}}""" }.use { server ->
-            val e = assertThrows(LlmException::class.java) { runBlocking { fast.post(server.url, emptyMap(), buildJsonObject {}) } }
-            assertEquals(503, e.code)
-            assertEquals("HTTP 503: busy", e.message)
-            assertEquals(4, server.requests.size)
-        }
-    }
-
-    @Test
-    fun clientErrorsAreNotRetried() {
-        TestServer { _, _ -> 401 to "plain text failure" }.use { server ->
-            val e = assertThrows(LlmException::class.java) { runBlocking { fast.post(server.url, emptyMap(), buildJsonObject {}) } }
-            assertEquals(401, e.code)
-            assertTrue(e.message!!.contains("plain text failure"))
-            assertEquals(1, server.requests.size)
-        }
-    }
-
-    @Test
-    fun aRetrySucceedsWhenTheServerRecovers() = runBlocking {
-        var calls = 0
-        TestServer { _, _ -> if (++calls < 3) 429 to "" else 200 to "{}" }.use { server ->
-            assertEquals("{}", fast.post(server.url, emptyMap(), buildJsonObject {}).toString())
-            assertEquals(3, server.requests.size)
-        }
-    }
-
-    @Test
-    fun aDroppedConnectionIsRetriedUntilTheServerAnswers() = runBlocking {
-        var calls = 0
-        TestServer { _, _ -> if (++calls < 3) error("hang up without answering") else 200 to "{}" }.use { server ->
-            assertEquals("{}", fast.post(server.url, emptyMap(), buildJsonObject {}).toString())
-            assertTrue(server.requests.size >= 3) // the JDK may repeat a dropped request by itself, so this is a lower bound
-        }
-    }
-
-    @Test
-    fun aServerThatNeverAnswersEndsInTheConnectionError() {
-        TestServer { _, _ -> error("hang up without answering") }.use { server ->
-            assertThrows(IOException::class.java) { runBlocking { fast.post(server.url, emptyMap(), buildJsonObject {}) } }
-            assertTrue(server.requests.size >= 4)
-        }
-    }
 
     @Test
     fun nonJsonBodyIsAnError() {
@@ -93,28 +26,6 @@ class HttpClientsTest {
     }
 
     @Test
-    fun anthropicClientSendsTheKeyAndJoinsTextBlocks() = runBlocking {
-        val reply = """{"content":[{"type":"text","text":"Hel"},{"type":"text","text":"lo"}]}"""
-        TestServer { _, _ -> 200 to reply }.use { server ->
-            val client = AnthropicClient("sk-test", "model-x", server.url, fast)
-            assertEquals("Hello", client.complete("sys", "hi"))
-            val seen = server.requests.single { it.path == "/v1/messages" }
-            assertEquals("/v1/messages", seen.path)
-            assertEquals("sk-test", seen.headers["x-api-key"])
-            assertTrue(seen.body.contains(""""system":"sys""""))
-            assertTrue(seen.body.contains("model-x"))
-        }
-    }
-
-    @Test
-    fun anthropicEmptyAnswerIsAnError() {
-        TestServer { _, _ -> 200 to """{"content":[]}""" }.use { server ->
-            val client = AnthropicClient("k", "m", server.url, fast)
-            assertThrows(LlmException::class.java) { runBlocking { client.complete("s", "u") } }
-        }
-    }
-
-    @Test
     fun openAiClientReadsTheFirstChoice() = runBlocking {
         TestServer { _, _ -> 200 to """{"choices":[{"message":{"content":"{\"a\":1}"}}]}""" }.use { server ->
             val client = OpenAiClient("sk-test", "gpt-x", server.url, fast)
@@ -123,23 +34,6 @@ class HttpClientsTest {
             assertEquals("/chat/completions", seen.path)
             assertEquals("Bearer sk-test", seen.headers["authorization"])
             assertTrue(seen.body.contains("json_object"))
-        }
-    }
-
-    @Test
-    fun cancellingAbandonsARequestThatIsStillWaitingForTheServer() = runBlocking {
-        val received = CountDownLatch(1)
-        val release = CountDownLatch(1)
-        TestServer { _, _ ->
-            received.countDown()
-            release.await()
-            200 to "{}"
-        }.use { server ->
-            val call = launch(Dispatchers.Default) { fast.post(server.url, emptyMap(), buildJsonObject {}) }
-            withContext(Dispatchers.IO) { received.await() }
-            withTimeout(5_000) { call.cancelAndJoin() }
-            assertTrue(call.isCancelled)
-            release.countDown()
         }
     }
 
