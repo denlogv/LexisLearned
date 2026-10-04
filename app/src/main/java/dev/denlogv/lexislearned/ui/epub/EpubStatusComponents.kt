@@ -3,6 +3,7 @@ package dev.denlogv.lexislearned.ui.epub
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -127,7 +128,8 @@ private fun FailedPanel(state: GenState.Failed, onRetry: () -> Unit, onSettings:
 @Composable
 fun GenerateBar(estimate: Estimate, sections: Int, prefs: Prefs, onGenerate: () -> Unit, onSettings: () -> Unit) {
     Surface(tonalElevation = 3.dp) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // The bar sits at the screen edge, so it keeps its content clear of the system navigation bar itself.
+        Column(Modifier.navigationBarsPadding().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 "${plural(sections, "section")} · ~${plural(estimate.cards, "card")} · ~${estimate.tokensK}k input tokens " +
                     "(billed by ${prefs.provider.label} to your key)",
