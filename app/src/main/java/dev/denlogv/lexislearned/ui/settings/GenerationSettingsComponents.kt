@@ -39,7 +39,9 @@ fun GenerationSection(prefs: Prefs, vm: SettingsViewModel) {
         Text("Deck generation from EPUB", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
         Hint("Chapters are sent to the AI provider you choose, using your own API key. The key is stored encrypted on this device only.")
         ProviderAndKey(prefs, vm)
+        if (prefs.provider == Provider.OPENAI_COMPATIBLE) ServerAddress(prefs, vm)
         ModelPicker(prefs, vm)
+        if (prefs.provider == Provider.OPENAI_COMPATIBLE) ModelIdField(prefs, vm)
         OutlinedTextField(
             prefs.targetLang,
             vm.settings::setTargetLang,
@@ -60,7 +62,7 @@ fun GenerationSection(prefs: Prefs, vm: SettingsViewModel) {
 private fun ProviderAndKey(prefs: Prefs, vm: SettingsViewModel) {
     var key by remember(prefs.provider) { mutableStateOf("") }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Provider.entries.forEach { p -> FilterChip(prefs.provider == p, { vm.settings.setProvider(p) }, { Text(p.label) }) }
+        Provider.entries.forEach { p -> FilterChip(prefs.provider == p, { vm.settings.setProvider(p) }, { Text(p.chip) }) }
     }
     OutlinedTextField(
         key,
@@ -108,4 +110,44 @@ private fun ModelPicker(prefs: Prefs, vm: SettingsViewModel) {
     }
     ui.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
     if (!prefs.hasApiKey) Hint("Save an API key to load the models available to it.")
+}
+
+/**
+ * The address field of a custom OpenAI-compatible server, with a note on what is accepted.
+ *
+ * @param prefs the current settings.
+ * @param vm the settings view model.
+ */
+@Composable
+private fun ServerAddress(prefs: Prefs, vm: SettingsViewModel) {
+    OutlinedTextField(
+        prefs.baseUrl,
+        vm.settings::setBaseUrl,
+        Modifier.fillMaxWidth(),
+        label = { Text("Server address, e.g. https://api.example.com/v1") },
+        isError = prefs.baseUrl.isNotBlank() && prefs.endpoint == null,
+        singleLine = true,
+    )
+    Hint(
+        "Any server that speaks the OpenAI chat API: OpenRouter, Groq, Ollama, LM Studio and others. Include the version " +
+            "path (usually /v1). Plain http:// is allowed for servers on your own network, but then your key and the book " +
+            "text travel unencrypted. If the server needs no key, save any placeholder.",
+    )
+}
+
+/**
+ * A text field for the model id, because a custom server may not list its models or may serve more than it lists.
+ *
+ * @param prefs the current settings.
+ * @param vm the settings view model.
+ */
+@Composable
+private fun ModelIdField(prefs: Prefs, vm: SettingsViewModel) {
+    OutlinedTextField(
+        prefs.model,
+        vm::selectModel,
+        Modifier.fillMaxWidth(),
+        label = { Text("Model id") },
+        singleLine = true,
+    )
 }

@@ -103,6 +103,29 @@ class HttpClientsTest {
     }
 
     @Test
+    fun serversThatRefuseResponseFormatAreAskedAgainWithoutItAndRemembered() = runBlocking {
+        val reject = """{"error":"'response_format.type' must be 'json_schema' or 'text'"}"""
+        val ok = """{"choices":[{"message":{"content":"{}"}}]}"""
+        var calls = 0
+        TestServer { _, _ -> if (++calls == 1) 400 to reject else 200 to ok }.use { server ->
+            val client = OpenAiClient("k", "m", server.url, fast)
+            assertEquals("{}", client.complete("s", "u"))
+            assertEquals("{}", client.complete("s", "u"))
+            assertEquals(listOf(true, false, false), server.requests.map { it.body.contains("response_format") })
+        }
+    }
+
+    @Test
+    fun otherBadRequestsAreNotRetried() {
+        TestServer { _, _ -> 400 to """{"error":{"message":"unknown model"}}""" }.use { server ->
+            val client = OpenAiClient("k", "m", server.url, fast)
+            val e = assertThrows(LlmException::class.java) { runBlocking { client.complete("s", "u") } }
+            assertEquals("HTTP 400: unknown model", e.message)
+            assertEquals(1, server.requests.size)
+        }
+    }
+
+    @Test
     fun openAiEmptyAnswerIsAnError() {
         TestServer { _, _ -> 200 to """{"choices":[]}""" }.use { server ->
             val client = OpenAiClient("k", "m", server.url, fast)
@@ -128,6 +151,18 @@ class HttpClientsTest {
         TestServer { _, _ -> 200 to reply }.use { server ->
             val models = ModelCatalog(fast).openAi("k", server.url)
             assertEquals(listOf("gpt-new", "o3", "gpt-old"), models.map { it.id })
+        }
+    }
+
+    @Test
+    fun compatibleCatalogKeepsEveryModelNewestFirstThenById() = runBlocking {
+        val reply = """{"data":[{"id":"llama3:8b"},{"id":"mistral"},{"id":"qwen","created":5},{"id":"text-embedding-3","created":2},{}]}"""
+        TestServer { _, _ -> 200 to reply }.use { server ->
+            val models = ModelCatalog(fast).openAiCompatible("k", server.url)
+            assertEquals(listOf("qwen", "text-embedding-3", "llama3:8b", "mistral"), models.map { it.id })
+            val seen = server.requests.single()
+            assertEquals("/models", seen.path)
+            assertEquals("Bearer k", seen.headers["authorization"])
         }
     }
 

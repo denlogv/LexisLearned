@@ -60,6 +60,23 @@ class ModelCatalog internal constructor(private val http: HttpJson) {
     }
 
     /**
+     * Lists the models of an OpenAI-compatible server exactly as it reports them; servers name their models freely, so nothing
+     * is filtered out.
+     *
+     * @param apiKey the key the server expects.
+     * @param baseUrl the server address including the version path.
+     * @return the models, newest first when the server says when they were created, otherwise sorted by id.
+     * @throws LlmException if the request fails.
+     */
+    suspend fun openAiCompatible(apiKey: String, baseUrl: String): List<ModelInfo> {
+        val reply = http.get("$baseUrl/models", mapOf("authorization" to "Bearer $apiKey"))
+        return reply["data"]?.jsonArray.orEmpty()
+            .mapNotNull { entry -> entry.jsonObject.text("id")?.let { it to (entry.jsonObject.text("created")?.toLongOrNull() ?: 0L) } }
+            .sortedWith(compareByDescending<Pair<String, Long>> { it.second }.thenBy { it.first })
+            .map { ModelInfo(it.first, it.first) }
+    }
+
+    /**
      * Converts an OpenAI model entry if it is a chat model.
      *
      * @receiver one entry of the model list.

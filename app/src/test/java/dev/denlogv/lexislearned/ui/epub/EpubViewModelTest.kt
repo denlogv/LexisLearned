@@ -28,7 +28,7 @@ class EpubViewModelTest {
 
     private val settings = testSettings()
     private val files = MemoryFiles()
-    private val generation = GenerationManager(CoroutineScope(Dispatchers.Unconfined), DeckStorage(memoryDb()), settings) { _, _, _ ->
+    private val generation = GenerationManager(CoroutineScope(Dispatchers.Unconfined), DeckStorage(memoryDb()), settings) { _, _ ->
         ScriptedLlm { _, user ->
             if (user.startsWith("Give")) "{}" else """{"cards":[{"a":"alpha","b":"альфа"}]}"""
         }

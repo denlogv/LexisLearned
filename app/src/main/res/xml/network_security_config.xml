@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The user may point the app at an OpenAI-compatible server by any http:// or https:// address, for example Ollama on the
+  local network, so cleartext traffic cannot be limited to fixed domains. The app's only network use is the request to the
+  provider the user chose, and the settings screen warns about http://.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

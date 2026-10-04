@@ -88,6 +88,13 @@ class Settings(private val sp: SharedPreferences, private val secrets: Secrets =
     fun setModel(m: String) = edit { putString(MODEL_PREFIX + _prefs.value.provider.name, m.trim()) }
 
     /**
+     * Sets the address of the server used by [Provider.OPENAI_COMPATIBLE].
+     *
+     * @param url the address as typed; it is kept as typed and checked when used, see [Prefs.endpoint].
+     */
+    fun setBaseUrl(url: String) = edit { putString(BASE_URL, url.trim()) }
+
+    /**
      * Sets the learner's level.
      *
      * @param l the level.
@@ -183,6 +190,7 @@ class Settings(private val sp: SharedPreferences, private val secrets: Secrets =
         return base.copy(
             provider = provider,
             model = sp.getString(MODEL_PREFIX + provider.name, null) ?: provider.defaultModel,
+            baseUrl = sp.getString(BASE_URL, null) ?: base.baseUrl,
             targetLang = sp.getString(TARGET_LANG, null) ?: base.targetLang,
             level = enumOrDefault(LEVEL, base.level),
             extraInstructions = sp.getString(EXTRA_INSTRUCTIONS, null) ?: base.extraInstructions,
@@ -213,6 +221,7 @@ class Settings(private val sp: SharedPreferences, private val secrets: Secrets =
         const val SPACE_SESSIONS = "spaceSessions"
         const val PROVIDER = "provider"
         const val MODEL_PREFIX = "model_"
+        const val BASE_URL = "baseUrl"
         const val TARGET_LANG = "targetLang"
         const val LEVEL = "level"
         const val EXTRA_INSTRUCTIONS = "extraInstructions"
