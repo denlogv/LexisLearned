@@ -86,4 +86,30 @@ class SettingsTest {
         assertFalse(settings.prefs.value.hasApiKey)
         assertEquals("sk-1", settings.apiKey(Provider.ANTHROPIC))
     }
+
+    @Test
+    fun theCustomServerAddressIsSavedTrimmedAndValidatedOnUse() {
+        settings.setProvider(Provider.OPENAI_COMPATIBLE)
+        assertNull(settings.prefs.value.endpoint)
+        settings.setBaseUrl("  http://localhost:11434/v1/ ")
+        assertEquals("http://localhost:11434/v1/", settings.prefs.value.baseUrl)
+        assertEquals("http://localhost:11434/v1", settings.prefs.value.endpoint)
+        settings.setBaseUrl("not a url")
+        assertNull(settings.prefs.value.endpoint)
+    }
+
+    @Test
+    fun aCustomServerIsReadyOnlyWithKeyAddressAndModel() {
+        settings.setProvider(Provider.OPENAI_COMPATIBLE)
+        settings.setApiKey(Provider.OPENAI_COMPATIBLE, "k")
+        assertFalse(settings.prefs.value.ready)
+        settings.setBaseUrl("https://api.example.com/v1")
+        assertFalse(settings.prefs.value.ready)
+        settings.setModel("m")
+        assertTrue(settings.prefs.value.ready)
+        settings.setProvider(Provider.ANTHROPIC)
+        assertFalse(settings.prefs.value.ready)
+        settings.setApiKey(Provider.ANTHROPIC, "k")
+        assertTrue(settings.prefs.value.ready)
+    }
 }

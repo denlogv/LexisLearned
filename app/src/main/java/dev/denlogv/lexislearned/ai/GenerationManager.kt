@@ -2,7 +2,6 @@ package dev.denlogv.lexislearned.ai
 
 import dev.denlogv.lexislearned.data.DeckStorage
 import dev.denlogv.lexislearned.data.Prefs
-import dev.denlogv.lexislearned.data.Provider
 import dev.denlogv.lexislearned.data.Settings
 import dev.denlogv.lexislearned.epub.EpubBook
 import dev.denlogv.lexislearned.epub.EpubReader
@@ -14,11 +13,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
- * Creates a client for a provider.
+ * Creates a client for the provider in the settings.
  *
- * The arguments are the provider, the API key and the model id.
+ * The arguments are the settings (provider, model and custom address) and the API key.
  */
-typealias ClientFactory = (Provider, String, String) -> LlmClient
+typealias ClientFactory = (Prefs, String) -> LlmClient
 
 /**
  * Runs "EPUB to deck" in the application scope so it survives screen changes, and publishes its progress as [GenState].
@@ -32,7 +31,7 @@ class GenerationManager(
     private val scope: CoroutineScope,
     private val storage: DeckStorage,
     private val settings: Settings,
-    private val clientFactory: ClientFactory = ::defaultClient,
+    private val clientFactory: ClientFactory = Providers::defaultClient,
 ) {
     private val _state = MutableStateFlow<GenState>(GenState.Idle)
 
@@ -62,8 +61,8 @@ class GenerationManager(
     fun start(book: EpubBook, selected: Set<Int>, sourceLang: String, cardsPer1000Words: Int) {
         val prefs = settings.prefs.value
         val key = settings.apiKey()
-        if (key.isNullOrBlank()) {
-            _state.value = GenState.Failed("Add your ${prefs.provider.label} API key in Settings first.", book)
+        if (key.isNullOrBlank() || !prefs.ready) {
+            _state.value = GenState.Failed(Providers.missingSetting(prefs), book)
             return
         }
         cancelled = false
@@ -75,7 +74,7 @@ class GenerationManager(
             onProgress = { done, total, cards, msg -> _state.value = GenState.Running(done, total, cards, msg) },
             isCancelled = { cancelled },
         )
-        scope.launch { _state.value = generate(book, options, prefs, clientFactory(prefs.provider, key, prefs.model)) }
+        scope.launch { _state.value = generate(book, options, prefs, clientFactory(prefs, key)) }
     }
 
     /**
@@ -132,20 +131,5 @@ class GenerationManager(
         throw e
     } catch (e: Exception) {
         GenState.Failed(e.message ?: "Generation failed", book)
-    }
-
-    private companion object {
-        /**
-         * Creates the client for the real provider APIs.
-         *
-         * @param provider which provider to talk to.
-         * @param key the user's API key.
-         * @param model the model id.
-         * @return the client.
-         */
-        fun defaultClient(provider: Provider, key: String, model: String): LlmClient = when (provider) {
-            Provider.ANTHROPIC -> AnthropicClient(key, model)
-            Provider.OPENAI -> OpenAiClient(key, model)
-        }
     }
 }

@@ -29,8 +29,8 @@ class GenerationManagerTest {
     private val library = DeckLibrary(db)
     private var answer: (String, String) -> String = { _, user -> if (user.startsWith("Give")) "{}" else cardsReply }
     private val created = mutableListOf<Triple<Provider, String, String>>()
-    private val manager = GenerationManager(CoroutineScope(Dispatchers.Unconfined), storage, settings) { provider, key, model ->
-        created += Triple(provider, key, model)
+    private val manager = GenerationManager(CoroutineScope(Dispatchers.Unconfined), storage, settings) { prefs, key ->
+        created += Triple(prefs.provider, key, prefs.model)
         ScriptedLlm(answer)
     }
 
@@ -58,6 +58,34 @@ class GenerationManagerTest {
         val failed = manager.state.value as GenState.Failed
         assertTrue(failed.message.contains("API key"))
         assertEquals(book, failed.book)
+    }
+
+    @Test
+    fun aCustomServerNeedsAValidAddressAndAModel() = runBlocking {
+        settings.setProvider(Provider.OPENAI_COMPATIBLE)
+        settings.setApiKey(Provider.OPENAI_COMPATIBLE, "k")
+        val book = ready()
+        manager.start(book, book.defaultSelection, "en", 8)
+        assertTrue((manager.state.value as GenState.Failed).message.contains("server address"))
+        settings.setBaseUrl("ftp://nope")
+        manager.start(book, book.defaultSelection, "en", 8)
+        assertTrue((manager.state.value as GenState.Failed).message.contains("server address"))
+        settings.setBaseUrl("http://192.168.1.5:11434/v1/")
+        manager.start(book, book.defaultSelection, "en", 8)
+        assertTrue((manager.state.value as GenState.Failed).message.contains("model"))
+        assertTrue(created.isEmpty())
+    }
+
+    @Test
+    fun aCustomServerIsUsedOnceConfigured() = runBlocking {
+        settings.setProvider(Provider.OPENAI_COMPATIBLE)
+        settings.setApiKey(Provider.OPENAI_COMPATIBLE, "k")
+        settings.setBaseUrl("http://192.168.1.5:11434/v1/")
+        settings.setModel("llama3")
+        val book = ready()
+        manager.start(book, book.defaultSelection, "en", 8)
+        manager.state.await { it is GenState.Finished }
+        assertEquals(Triple(Provider.OPENAI_COMPATIBLE, "k", "llama3"), created.single())
     }
 
     @Test

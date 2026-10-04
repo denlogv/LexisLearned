@@ -29,7 +29,7 @@ Reading in a language you are still learning is slow when every page hides a doz
   - **Type**: type the answer, forgiving about case, accents and small typos.
 - **Configurable sessions**: rounds per session, number of sessions needed to complete a word, and optional spaced repetition between sessions.
 - **Book, part and chapter screens**, each with its own progress, study button and options. Progress can be reset for a word, a chapter, a part or a whole book.
-- **Deck from EPUB**: reads the book's structure, lets you review it, then has Claude or OpenAI pick vocabulary above your level and write translations, transcriptions and original example sentences. The list of available models is loaded from the provider.
+- **Deck from EPUB**: reads the book's structure, lets you review it, then has Claude, OpenAI or any OpenAI-compatible server pick vocabulary above your level and write translations, transcriptions and original example sentences. The list of available models is loaded from the provider.
 - **Levels A1 to C2**, each with a built-in prompt you can edit, reset, and extend with your own instructions.
 - **Private by design**: decks and progress stay on your phone, and your API key is stored encrypted.
 - **Export** decks as `.lexis`, with your progress.
@@ -123,7 +123,7 @@ Use the **⋮** menu on a book, part or chapter screen to reset everything below
 | Rounds per session | How many times each word goes through all selected modes in one session. |
 | Sessions to complete a word | How many successful sessions make a word *completed*. |
 | Space sessions over days | On: a word returns after a growing pause. Off: it can be studied again right away. |
-| Provider, API key, model | Used to create decks from EPUBs. The model list is loaded with your key. |
+| Provider, API key, model | Used to create decks from EPUBs. Choose **OpenAI-compatible** (your own server address, for example LM Studio, Ollama or OpenRouter), **OpenAI** or **Claude**. The model list is loaded with your key. |
 | Your language | The language cards are translated into (an ISO code such as `ru`, `de` or `es`). |
 | Level and card rules | Your level (A1 to C2), editable rules for each level, and extra instructions. |
 
@@ -131,9 +131,9 @@ A full session takes roughly *cards × modes × rounds* steps, so a modest sessi
 
 ## Decks from an EPUB
 
-You need an API key from [Anthropic](https://console.anthropic.com/) or [OpenAI](https://platform.openai.com/). The key is stored encrypted on your phone and is sent only to the provider you chose. Usage is billed to your key, and the review screen shows an estimate before anything is sent.
+You need an API key from [Anthropic](https://console.anthropic.com/) or [OpenAI](https://platform.openai.com/), or the address and key of any server that speaks the OpenAI chat API (OpenRouter, Groq, Ollama, LM Studio and others). The key is stored encrypted on your phone and is sent only to the provider you chose. Usage is billed to your key, and the review screen shows an estimate before anything is sent.
 
-1. In **Settings**, pick a provider, paste your key and tap **Save key**. The available models load; choose one.
+1. In **Settings**, pick a provider, paste your key and tap **Save key**. The available models load; choose one. For a custom server pick **OpenAI-compatible**, enter its address including the version path (usually `/v1`, for example `https://openrouter.ai/api/v1`), save the key (any placeholder if the server needs none) and pick or type a model id. Plain `http://` addresses work too, but then your key and the book text travel unencrypted, so use them only on your own network.
 2. Tap **Add deck → Create from EPUB (AI)** and choose the book.
 3. **Review the structure.** LexisLearned reads the book's table of contents and groups chapters into parts where the book has them (for example a story collection or an omnibus). Front and back matter such as contents, copyright pages, notes and licence text, as well as very short sections, are listed but unchecked; tick them if you want them. Check the book's language, choose your level and the number of cards per 1,000 words, and untick sections you do not need.
 4. Tap **Generate deck.** Sections are processed one at a time. You can leave the screen, or stop early and keep what is finished. The result is a normal deck.
@@ -153,7 +153,7 @@ Other formats can be added by implementing the `DeckFormat` interface; see [CONT
 ## Privacy
 
 - Decks, progress and settings are stored only on your device.
-- The app uses the internet only to contact the AI provider you configured. Generating a deck sends the text of the sections you selected to that provider. There is no analytics and no account.
+- The app uses the internet only to contact the AI provider or server you configured. Cleartext (`http://`) traffic is allowed because custom servers are often local. Generating a deck sends the text of the sections you selected to that provider. There is no analytics and no account.
 - The API key is stored encrypted with a key held in the Android Keystore.
 - App backup is disabled, so the encrypted key is never copied to cloud backups.
 

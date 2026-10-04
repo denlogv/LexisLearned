@@ -48,7 +48,7 @@ app/src/main/java/dev/denlogv/lexislearned/
   format/   DeckFormat interface; .lexis (JSON) implementation
   data/     Room database, repository, settings and encrypted API-key storage
   epub/     EPUB reader: table of contents, parts, sections, boilerplate detection
-  ai/       LLM clients (Anthropic, OpenAI), prompts per level, deck generation
+  ai/       LLM clients (Anthropic, OpenAI and compatible servers), prompts per level, deck generation
   ui/       Jetpack Compose screens (library, book, part, chapter, study, EPUB, settings)
 detekt-rules/  the project's own detekt rule (documentation completeness) and its tests
 samples/    a demo deck and a tiny original EPUB

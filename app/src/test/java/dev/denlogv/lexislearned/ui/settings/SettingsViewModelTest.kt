@@ -23,8 +23,8 @@ class SettingsViewModelTest {
     private var models = listOf(ModelInfo("new-model", "New"), ModelInfo("old-model", "Old"))
     private var failure: Exception? = null
     private val requests = mutableListOf<Pair<Provider, String>>()
-    private val lister = ModelLister { provider, key ->
-        requests += provider to key
+    private val lister = ModelLister { prefs, key ->
+        requests += prefs.provider to key
         failure?.let { throw it }
         models
     }
@@ -84,5 +84,24 @@ class SettingsViewModelTest {
         settings.setProvider(Provider.OPENAI)
         vm.models.await { it.models.isNotEmpty() }
         assertEquals(Provider.OPENAI to "sk-openai", requests.last())
+    }
+
+    @Test
+    fun aCustomServerKeepsAModelItDoesNotList() = runBlocking {
+        settings.setProvider(Provider.OPENAI_COMPATIBLE)
+        settings.setModel("my-private-model")
+        val vm = SettingsViewModel(settings, lister)
+        vm.saveKey("k")
+        vm.models.await { it.models.isNotEmpty() }
+        assertEquals("my-private-model", vm.prefs.value.model)
+    }
+
+    @Test
+    fun aCustomServerWithoutAModelGetsTheNewestListedOne() = runBlocking {
+        settings.setProvider(Provider.OPENAI_COMPATIBLE)
+        val vm = SettingsViewModel(settings, lister)
+        vm.saveKey("k")
+        vm.models.await { it.models.isNotEmpty() }
+        assertEquals("new-model", vm.prefs.value.model)
     }
 }

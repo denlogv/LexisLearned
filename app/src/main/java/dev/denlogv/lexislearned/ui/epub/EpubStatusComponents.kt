@@ -134,15 +134,15 @@ fun GenerateBar(estimate: Estimate, sections: Int, prefs: Prefs, onGenerate: () 
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (!prefs.hasApiKey) {
+            if (!prefs.ready) {
                 Text(
-                    "No API key saved for this provider.",
+                    "The AI provider is not fully set up.",
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                 )
-                OutlinedButton(onSettings, Modifier.fillMaxWidth()) { Text("Add API key") }
+                OutlinedButton(onSettings, Modifier.fillMaxWidth()) { Text("Open settings") }
             }
-            Button(onGenerate, Modifier.fillMaxWidth(), enabled = prefs.hasApiKey && sections > 0) { Text("Generate deck") }
+            Button(onGenerate, Modifier.fillMaxWidth(), enabled = prefs.ready && sections > 0) { Text("Generate deck") }
         }
     }
 }
