@@ -22,6 +22,9 @@ class AnthropicClient internal constructor(
     private val baseUrl: String,
     private val http: HttpJson,
 ) : LlmClient {
+    private val headers = mapOf("x-api-key" to apiKey, "anthropic-version" to API_VERSION)
+    private val outputLimit = AnthropicOutputLimit(headers, model, baseUrl, http)
+
     /**
      * Creates a client for the real API.
      *
@@ -36,19 +39,22 @@ class AnthropicClient internal constructor(
      * @param system the system prompt.
      * @param user the user message.
      * @return the concatenated text blocks of the reply.
-     * @throws LlmException if the request fails or the reply has no text.
+     * @throws LlmException if the request fails, the reply has no text or the reply was cut off at the model's output limit.
      */
     override suspend fun complete(system: String, user: String): String {
         val response = http.post(
             "$baseUrl/v1/messages",
-            mapOf("x-api-key" to apiKey, "anthropic-version" to API_VERSION),
+            headers,
             buildJsonObject {
                 put("model", model)
-                put("max_tokens", MAX_TOKENS)
+                put("max_tokens", outputLimit.get())
                 put("system", system)
                 put("messages", buildJsonArray { add(message("user", user)) })
             },
         )
+        if (response["stop_reason"]?.jsonPrimitive?.contentOrNull == "max_tokens") {
+            throw LlmException("The reply was cut off because it reached the model's output limit")
+        }
         return (response["content"] as? JsonArray)
             ?.joinToString("") { it.jsonObject["text"]?.jsonPrimitive?.contentOrNull.orEmpty() }
             ?.takeIf { it.isNotBlank() } ?: throw LlmException("Empty response from Anthropic")
@@ -61,6 +67,5 @@ class AnthropicClient internal constructor(
 
         /** API version header value. */
         const val API_VERSION = "2023-06-01"
-        private const val MAX_TOKENS = 8192
     }
 }
