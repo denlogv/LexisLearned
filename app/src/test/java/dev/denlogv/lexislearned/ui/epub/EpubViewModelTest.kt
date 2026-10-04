@@ -76,7 +76,8 @@ class EpubViewModelTest {
         val screen = EpubViewModel(partial, settings, files) // the screen is open while the deck is generated
         val stopped = partial.runWithOneSectionMissing()
         screen.continueGeneration() // from the result panel
-        assertEquals(setOf(3), screen.review.await { it.selected.isNotEmpty() }.selected)
+        // The review first holds the default selection of the book that was read ({2, 3}); wait for the one of the continuation.
+        assertEquals(setOf(3), screen.review.await { it.selected == setOf(3) }.selected)
         assertEquals(stopped.deckId, screen.target.value?.continuation?.deckId)
         screen.generate()
         val done = partial.state.await {
