@@ -1,6 +1,7 @@
 package dev.denlogv.lexislearned.ui.epub
 
 import androidx.compose.ui.state.ToggleableState
+import dev.denlogv.lexislearned.ai.GenState
 import dev.denlogv.lexislearned.epub.EpubBook
 import dev.denlogv.lexislearned.epub.EpubChapter
 import dev.denlogv.lexislearned.ui.plural
@@ -62,12 +63,15 @@ data class ReviewState(val selected: Set<Int>, val lang: String, val density: In
     /** Creates the starting choices. */
     companion object {
         /**
-         * The starting choices for a book: its suggested sections and its declared language (English if none).
+         * The starting choices for a book: its suggested sections and its declared language (English if none). When the rest of
+         * a book is added to a deck, only the sections that are not in the deck yet are chosen.
          *
          * @param book the book.
+         * @param continuation the deck that is continued, or null for a new deck.
          * @return the initial state.
          */
-        fun initial(book: EpubBook): ReviewState = ReviewState(book.defaultSelection, book.language.take(2).lowercase().ifBlank { "en" })
+        fun initial(book: EpubBook, continuation: GenState.Continuation? = null): ReviewState =
+            ReviewState(continuation?.selection ?: book.defaultSelection, book.language.take(2).lowercase().ifBlank { "en" })
     }
 }
 

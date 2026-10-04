@@ -18,6 +18,14 @@ sealed interface GenState {
     data class Ready(val book: EpubBook) : GenState
 
     /**
+     * Tells [GenerationManager.start] to add to a deck that was stopped early instead of creating a new one.
+     *
+     * @property deckId the stored deck to add to.
+     * @property selection indexes of the sections to preselect: those that were chosen and are not in the deck yet.
+     */
+    data class Continuation(val deckId: Long, val selection: Set<Int>)
+
+    /**
      * Cards are being generated.
      *
      * @property done sections finished.
@@ -43,8 +51,17 @@ sealed interface GenState {
      * @property deckId the id of the new deck in the library.
      * @property cards number of cards in it.
      * @property failed descriptions of sections that failed and were skipped.
+     * @property book the book, kept so the rest can be added later; null if there is nothing to add.
+     * @property unfinished indexes of the sections that were chosen but are not in the deck: failed, interrupted or not reached.
+     * If there are any, the user can continue with them, and the new chapters are added to this deck.
      */
-    data class Finished(val deckId: Long, val cards: Int, val failed: List<String>) : GenState
+    data class Finished(
+        val deckId: Long,
+        val cards: Int,
+        val failed: List<String>,
+        val book: EpubBook? = null,
+        val unfinished: Set<Int> = emptySet(),
+    ) : GenState
 
     /**
      * Something went wrong.

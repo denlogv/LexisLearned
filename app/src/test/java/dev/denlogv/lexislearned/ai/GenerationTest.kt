@@ -150,6 +150,49 @@ class GenerationTest {
     }
 
     @Test
+    fun theRunKnowsWhichSectionsAreNotDone() = runBlocking {
+        val llm = ScriptedLlm { system, user ->
+            when {
+                system.startsWith("Reply with JSON only") -> "{}"
+                user.contains("Chapter: \"Two\"") -> throw LlmException("overloaded", 500)
+                else -> reply("w${user.length}")
+            }
+        }
+        val run = CardGenerator(llm, "ru").start(book, GenerationOptions(), null)
+        run.process(llm, GenerationOptions())
+        assertEquals(setOf(2), run.unfinished)
+        assertEquals(1, run.failed.size)
+        var calls = 0
+        val options = GenerationOptions(isCancelled = { calls++ > 0 })
+        val stopped = CardGenerator(llm, "ru").start(book, options, null)
+        stopped.process(llm, options)
+        assertEquals(setOf(2, 3), stopped.unfinished)
+    }
+
+    @Test
+    fun continuingADeckReusesItsPartsAndTitlesAndSkipsItsWords() = runBlocking {
+        val first = ScriptedLlm { system, user ->
+            when {
+                system.startsWith("Reply with JSON only") -> """{"title_b":"Лорем","parts":{"Part I":"Часть I"}}"""
+                else -> reply("a", "b")
+            }
+        }
+        val base = CardGenerator(first, "ru").generate(book, GenerationOptions(selected = setOf(1))).deck
+        val second = ScriptedLlm { _, user -> if (user.contains("Chapter: \"Two\"")) reply("b", "c") else reply("d") }
+        val options = GenerationOptions(selected = setOf(2, 3))
+        val run = CardGenerator(second, "ru").start(book, options, base)
+        run.process(second, options)
+        val deck = run.result().deck
+        assertEquals(base.id, deck.id)
+        assertEquals("Лорем", deck.nativeTitle)
+        assertEquals(listOf("01 One", "02 Two", "03 Three"), deck.chapters.map { it.title })
+        assertEquals(base.chapters[0].part, deck.chapters[1].part)
+        assertEquals(listOf("c"), deck.chapters[1].cards.map { it.front.text }) // "b" is already in the deck
+        assertTrue(second.prompts.none { it.first.startsWith("Reply with JSON only") }) // nothing new to translate
+        assertEquals(emptySet<Int>(), run.unfinished)
+    }
+
+    @Test
     fun progressCountsOnlySectionsThatReachedTheDeck() = runBlocking {
         val llm = ScriptedLlm { system, user ->
             when {

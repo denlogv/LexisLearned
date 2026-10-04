@@ -25,7 +25,8 @@ typealias ClientFactory = (Prefs, String) -> LlmClient
  * Runs "EPUB to deck" in the application scope so it survives screen changes, and publishes its progress as [GenState].
  *
  * The deck is stored while it is generated: the book appears in the library with its first chapter, and every further chapter
- * is added as soon as it is ready. Stopping therefore loses nothing that was finished.
+ * is added as soon as it is ready. Stopping therefore loses nothing that was finished, and the rest of the book can be added to the
+ * same deck later (see [start]).
  *
  * @param scope where background work runs.
  * @param storage where the deck is stored.
@@ -64,8 +65,10 @@ class GenerationManager(
      * @param selected indexes of the sections to use.
      * @param sourceLang the book's language code.
      * @param cardsPer1000Words how many cards to ask for per thousand words.
+     * @param continuation the deck to add the chapters to, when the rest of a book is added to a deck that was stopped early; null
+     * to create a new deck.
      */
-    fun start(book: EpubBook, selected: Set<Int>, sourceLang: String, cardsPer1000Words: Int) {
+    fun start(book: EpubBook, selected: Set<Int>, sourceLang: String, cardsPer1000Words: Int, continuation: GenState.Continuation? = null) {
         val prefs = settings.prefs.value
         val llm = clientOrFail(prefs, book) ?: return
         val options = GenerationOptions(
@@ -76,8 +79,8 @@ class GenerationManager(
             isCancelled = { stopRequested },
         )
         val job =
-            GenerationJob(book, prefs, storage, options) { id, cards -> publish { it.copy(deckId = id, cards = cards) } }
-        _state.value = GenState.Running(0, selected.size, 0, "Starting…", book.title)
+            GenerationJob(book, prefs, storage, options, continuation) { id, cards -> publish { it.copy(deckId = id, cards = cards) } }
+        _state.value = GenState.Running(0, selected.size, 0, "Starting…", book.title, continuation?.deckId)
         launch(job, llm)
     }
 
