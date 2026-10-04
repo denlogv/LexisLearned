@@ -40,7 +40,7 @@ import dev.denlogv.lexislearned.ui.plural
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudyScreen(onBack: () -> Unit) {
-    val vm = appViewModel { app, handle -> StudyViewModel(app.repository, app.settings, handle) }
+    val vm = appViewModel { app, handle -> StudyViewModel(app.study, app.settings, handle) }
     val ui by vm.ui.collectAsState()
     Scaffold(topBar = {
         TopAppBar(

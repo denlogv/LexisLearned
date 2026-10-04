@@ -1,7 +1,7 @@
 package dev.denlogv.lexislearned.ui.study
 
 import dev.denlogv.lexislearned.data.CardEntity
-import dev.denlogv.lexislearned.data.DeckRepository
+import dev.denlogv.lexislearned.data.StudyRepository
 import dev.denlogv.lexislearned.domain.Direction
 import dev.denlogv.lexislearned.domain.SessionPlanner
 import dev.denlogv.lexislearned.domain.StudyMode
@@ -20,11 +20,11 @@ class PresentedStep(val cards: List<CardEntity>, val decoyIds: Set<Long>, val op
  * Prepares a planned step for display: looks up its cards, pads a small Pair board with filler cards and builds the answer
  * choices for Select.
  *
- * @param repo where filler cards and wrong answers come from.
+ * @param study where filler cards and wrong answers come from.
  * @param direction which side of a card is the question.
  * @param random shuffles the answer choices.
  */
-class StepPresenter(private val repo: DeckRepository, private val direction: Direction, private val random: Random) {
+class StepPresenter(private val study: StudyRepository, private val direction: Direction, private val random: Random) {
     /**
      * Prepares a step.
      *
@@ -48,7 +48,7 @@ class StepPresenter(private val repo: DeckRepository, private val direction: Dir
     private suspend fun fillersFor(real: List<CardEntity>): List<CardEntity> {
         val answers = real.map { it.answer(direction) }.toSet()
         val missing = MIN_PAIR_TILES - real.size
-        return repo.decoys(real.first(), real.map { it.id }, missing * CANDIDATE_FACTOR)
+        return study.decoys(real.first(), real.map { it.id }, missing * CANDIDATE_FACTOR)
             .distinctBy { it.answer(direction) }
             .filter { it.answer(direction) !in answers }
             .take(missing)
@@ -62,7 +62,7 @@ class StepPresenter(private val repo: DeckRepository, private val direction: Dir
      */
     private suspend fun selectOptions(card: CardEntity): List<String> {
         val correct = card.answer(direction)
-        val wrong = repo.distractors(card, WRONG_CANDIDATES).map {
+        val wrong = study.distractors(card, WRONG_CANDIDATES).map {
             it.answer(direction)
         }.distinct().filter { it != correct }.take(WRONG_ANSWERS)
         return (wrong + correct).shuffled(random)

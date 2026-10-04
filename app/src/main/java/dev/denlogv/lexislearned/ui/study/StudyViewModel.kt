@@ -4,9 +4,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.denlogv.lexislearned.data.CardEntity
-import dev.denlogv.lexislearned.data.DeckRepository
 import dev.denlogv.lexislearned.data.Prefs
 import dev.denlogv.lexislearned.data.Settings
+import dev.denlogv.lexislearned.data.StudyRepository
 import dev.denlogv.lexislearned.domain.Direction
 import dev.denlogv.lexislearned.domain.Grade
 import dev.denlogv.lexislearned.domain.SessionGrading
@@ -26,13 +26,13 @@ import kotlinx.coroutines.launch
  *
  * The navigation arguments `deckId`, `chapterId` and `partId` come from [handle]; [Routes.NONE] stands for "all".
  *
- * @param repo access to stored decks.
+ * @param study the words of a session and where its results are saved.
  * @param settings the user's settings; they are read once when the session starts.
  * @param handle the saved state holding the navigation arguments.
  * @param random source of randomness for the order of steps and answer choices.
  */
 class StudyViewModel(
-    private val repo: DeckRepository,
+    private val study: StudyRepository,
     settings: Settings,
     handle: SavedStateHandle,
     private val random: Random = Random.Default,
@@ -41,7 +41,7 @@ class StudyViewModel(
     private val chapterId: Long? = handle.get<Long>("chapterId")?.takeIf { it >= 0 }
     private val partId: Long? = handle.get<Long>("partId")?.takeIf { it >= 0 }
     private val prefs: Prefs = settings.prefs.value
-    private val presenter = StepPresenter(repo, prefs.direction, random)
+    private val presenter = StepPresenter(study, prefs.direction, random)
     private val cards = HashMap<Long, CardEntity>()
     private var planner: SessionPlanner? = null
     private var step: SessionPlanner.Step? = null
@@ -99,7 +99,7 @@ class StudyViewModel(
 
     /** Loads the session's words, plans the session and shows its first step. */
     private suspend fun start() {
-        val list = repo.sessionCards(deckId, chapterId, partId, prefs.sessionsToComplete, prefs.sessionSize, prefs.newPerSession)
+        val list = study.sessionCards(deckId, chapterId, partId, prefs.sessionsToComplete, prefs.sessionSize, prefs.newPerSession)
         list.forEach { cards[it.id] = it }
         planner = SessionPlanner(list.map { it.id }, prefs.modes, prefs.rounds, random)
         _ui.value = StudyUi(loading = false, totalWords = list.size)
@@ -121,7 +121,7 @@ class StudyViewModel(
         for (outcome in outcomes) {
             val card = cards[outcome.cardId] ?: continue
             val grade = SessionGrading.gradeFor(outcome.accuracy, outcome.knew)
-            cards[outcome.cardId] = repo.finishSession(card, grade, prefs.spaceSessions)
+            cards[outcome.cardId] = study.finishSession(card, grade, prefs.spaceSessions)
         }
         if (outcomes.isNotEmpty()) _ui.update { it.copy(completedWords = it.completedWords + outcomes.size) }
     }

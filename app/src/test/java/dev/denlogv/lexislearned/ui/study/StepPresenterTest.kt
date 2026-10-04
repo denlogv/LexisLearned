@@ -1,7 +1,8 @@
 package dev.denlogv.lexislearned.ui.study
 
 import dev.denlogv.lexislearned.data.CardEntity
-import dev.denlogv.lexislearned.data.DeckRepository
+import dev.denlogv.lexislearned.data.DeckStorage
+import dev.denlogv.lexislearned.data.StudyRepository
 import dev.denlogv.lexislearned.data.memoryDb
 import dev.denlogv.lexislearned.domain.Direction
 import dev.denlogv.lexislearned.domain.SessionPlanner
@@ -18,15 +19,20 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class StepPresenterTest {
     private val db = memoryDb()
-    private val repo = DeckRepository(db)
+    private val storage = DeckStorage(db)
+    private val study = StudyRepository(db)
 
-    private suspend fun cards(): Map<Long, CardEntity> = repo.import(sampleDeck()).let { db.cardDao().cards(it) }.associateBy { it.id }
+    private suspend fun cards(): Map<Long, CardEntity> = storage.import(sampleDeck()).let { db.cardDao().cards(it) }.associateBy { it.id }
 
     @Test
     fun selectStepsGetThreeWrongAnswersAndTheRightOne() = runBlocking {
         val cards = cards()
         val card = cards.values.first()
-        val shown = StepPresenter(repo, Direction.FORWARD, Random(1)).present(SessionPlanner.Step(StudyMode.SELECT, listOf(card.id)), cards)
+        val shown = StepPresenter(
+            study,
+            Direction.FORWARD,
+            Random(1),
+        ).present(SessionPlanner.Step(StudyMode.SELECT, listOf(card.id)), cards)
         assertEquals(4, shown.options.size)
         assertTrue(card.backText in shown.options)
         assertEquals(shown.options.distinct(), shown.options)
@@ -37,7 +43,15 @@ class StepPresenterTest {
     fun smallPairBoardsArePaddedWithFillers() = runBlocking {
         val cards = cards()
         val two = cards.values.take(2)
-        val shown = StepPresenter(repo, Direction.REVERSE, Random(1)).present(SessionPlanner.Step(StudyMode.PAIR, two.map { it.id }), cards)
+        val shown = StepPresenter(study, Direction.REVERSE, Random(1)).present(
+            SessionPlanner.Step(
+                StudyMode.PAIR,
+                two.map {
+                    it.id
+                },
+            ),
+            cards,
+        )
         assertEquals(4, shown.cards.size)
         assertEquals(2, shown.decoyIds.size)
         assertTrue(shown.options.isEmpty())
@@ -48,7 +62,7 @@ class StepPresenterTest {
     fun otherModesShowJustTheirCards() = runBlocking {
         val cards = cards()
         val card = cards.values.first()
-        val shown = StepPresenter(repo, Direction.FORWARD, Random(1)).present(SessionPlanner.Step(StudyMode.TYPE, listOf(card.id)), cards)
+        val shown = StepPresenter(study, Direction.FORWARD, Random(1)).present(SessionPlanner.Step(StudyMode.TYPE, listOf(card.id)), cards)
         assertEquals(listOf(card), shown.cards)
         assertTrue(shown.options.isEmpty() && shown.decoyIds.isEmpty())
     }

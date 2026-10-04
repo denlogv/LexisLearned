@@ -20,7 +20,7 @@ import dev.denlogv.lexislearned.ui.studyButtonLabel
  */
 @Composable
 fun PartScreen(onBack: () -> Unit, onStudy: (Long, Long, Long) -> Unit, onChapter: (Long) -> Unit) {
-    val vm = appViewModel { app, handle -> PartViewModel(app.repository, app.settings, handle["partId"]!!) }
+    val vm = appViewModel { app, handle -> PartViewModel(app.library, app.settings, handle["partId"]!!) }
     val part by vm.part.collectAsState()
     val deck by vm.deck.collectAsState()
     val chapters by vm.chapters.collectAsState()
