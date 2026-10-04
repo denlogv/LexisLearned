@@ -18,7 +18,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TriStateCheckbox
@@ -36,7 +35,6 @@ import dev.denlogv.lexislearned.domain.CefrLevel
 import dev.denlogv.lexislearned.epub.EpubBook
 import dev.denlogv.lexislearned.epub.EpubChapter
 import dev.denlogv.lexislearned.ui.settings.LevelChips
-import kotlin.math.roundToInt
 
 /** Languages offered for the book. */
 private val LANGUAGES = listOf("en", "de", "fr", "es", "it", "pt", "nl", "pl", "sv", "cs", "tr", "uk", "ru")
@@ -48,7 +46,7 @@ private val PART_INDENT = 28.dp
 private val LOOSE_INDENT = 8.dp
 
 /**
- * The review of the detected structure: language, level, density and the sections to turn into cards.
+ * The review of the detected structure: language, level and the sections to turn into cards.
  *
  * @param book the book.
  * @param review the current choices.
@@ -94,7 +92,7 @@ private fun ContinuingNote() {
 }
 
 /**
- * The top of the review: title, summary, language, level, density and quick selection buttons.
+ * The top of the review: title, summary, language, level and quick selection buttons.
  *
  * @param book the book.
  * @param review the current choices.
@@ -123,8 +121,6 @@ private fun ReviewHeader(
         }
         Text("Your level (cards cover words above it):", style = MaterialTheme.typography.labelLarge)
         LevelChips(level, onLevel)
-        Text("Cards per 1,000 words: ${review.density}")
-        Slider(review.density.toFloat(), { v -> onChange { it.copy(density = v.roundToInt()) } }, valueRange = 2f..20f, steps = 17)
         SelectionButtons(book, onChange)
     }
 }
@@ -182,7 +178,7 @@ private fun LazyListScope.groupItems(group: ChapterGroup, review: ReviewState, o
         item(key = "part-${group.chapters.first().index}") { PartRow(group, review.selected) { onChange { it.togglePart(group) } } }
     }
     items(group.chapters, key = { it.index }) { c ->
-        ChapterRow(c, c.index in review.selected, review.density, indent) { onChange { it.toggleChapter(c.index) } }
+        ChapterRow(c, c.index in review.selected, indent) { onChange { it.toggleChapter(c.index) } }
     }
 }
 
@@ -213,12 +209,11 @@ private fun PartRow(group: ChapterGroup, selected: Set<Int>, onToggle: () -> Uni
  *
  * @param chapter the section.
  * @param checked whether it is selected.
- * @param density cards per 1,000 words, for the card estimate.
  * @param indent the space to the left of the checkbox.
  * @param onToggle called when the row is tapped.
  */
 @Composable
-private fun ChapterRow(chapter: EpubChapter, checked: Boolean, density: Int, indent: Dp, onToggle: () -> Unit) {
+private fun ChapterRow(chapter: EpubChapter, checked: Boolean, indent: Dp, onToggle: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(start = indent, end = 8.dp, top = 2.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -227,7 +222,7 @@ private fun ChapterRow(chapter: EpubChapter, checked: Boolean, density: Int, ind
         Column(Modifier.weight(1f)) {
             Text(chapter.title, maxLines = 2)
             Text(
-                chapterDetail(chapter, density),
+                chapterDetail(chapter),
                 style = MaterialTheme.typography.labelSmall,
                 color = if (chapter.skipReason != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
             )

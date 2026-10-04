@@ -30,7 +30,7 @@ class FileJobStore(private val dir: File) : JobStore {
      * @param record the progress.
      * @throws IOException if it cannot be written.
      */
-    override fun saveRecord(record: JobRecord) = write(this.record, Json.encodeToString(JobRecord.serializer(), record).toByteArray())
+    override fun saveRecord(record: JobRecord) = write(this.record, JSON.encodeToString(JobRecord.serializer(), record).toByteArray())
 
     /**
      * Reads both files.
@@ -38,7 +38,7 @@ class FileJobStore(private val dir: File) : JobStore {
      * @return the job, or null if a file is missing or the record is damaged.
      */
     override fun load(): StoredJob? = try {
-        StoredJob(Json.decodeFromString(JobRecord.serializer(), record.readText()), book.readBytes())
+        StoredJob(JSON.decodeFromString(JobRecord.serializer(), record.readText()), book.readBytes())
     } catch (ignored: IOException) {
         null // Missing or unreadable: there is nothing to resume.
     } catch (ignored: SerializationException) {
@@ -69,5 +69,8 @@ class FileJobStore(private val dir: File) : JobStore {
         const val BOOK_FILE = "book.epub"
         const val RECORD_FILE = "job.json"
         const val TEMP_SUFFIX = ".tmp"
+
+        /** Reads records that have fields this version no longer writes, so a job paused before an update can still be resumed. */
+        val JSON = Json { ignoreUnknownKeys = true }
     }
 }

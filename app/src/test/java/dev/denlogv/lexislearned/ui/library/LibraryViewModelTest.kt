@@ -99,7 +99,7 @@ class LibraryViewModelTest {
     @Test
     fun discardingAPausedGenerationEndsItAndForgetsTheStoredBook() = runBlocking {
         store.saveBook(loremEpub())
-        store.saveRecord(JobRecord(null, 0, setOf(1), emptyList(), "en", 8))
+        store.saveRecord(JobRecord(null, 0, setOf(1), emptyList(), "en"))
         generation.restore()
         vm.generating.await { it is GenState.Paused }
         vm.discardGeneration()

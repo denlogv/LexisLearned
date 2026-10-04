@@ -49,7 +49,7 @@ class GenerationPauseTest {
         fx.settings.setApiKey(Provider.ANTHROPIC, "k")
         manager.load(loremEpub())
         val book = (manager.state.await { it is GenState.Ready } as GenState.Ready).book
-        manager.start(book, book.defaultSelection, "en", 8)
+        manager.start(book, book.defaultSelection, "en")
         withTimeout(10_000) { titleStarted.await() }
         return manager.state.value as GenState.Running
     }

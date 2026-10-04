@@ -10,7 +10,7 @@ many contain front matter, licence text and very short sections that should not 
 The reader uses the book's table of contents (EPUB 3 navigation document or NCX), cuts the text at the anchors, and detects parts
 from nesting or, for flat tables, from titles such as "Part 2" and from chapter numbering that starts over. Sections that look like
 front or back matter, licence boilerplate or are very short get a *reason* and are unchecked, not dropped. The user always sees the
-detected structure and can change the selection, the book language, the level and the card density before anything is sent.
+detected structure and can change the selection, the book language and the level before anything is sent.
 
 ## Consequences
 

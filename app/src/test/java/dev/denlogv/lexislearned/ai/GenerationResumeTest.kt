@@ -23,7 +23,7 @@ class GenerationResumeTest {
 
     private suspend fun pausedAfterTheFirstChapter(llm: GenerationFixture.GatedLlm): GenState.Paused {
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         llm.release()
         fx.manager.state.await { it is GenState.Running && it.deckId != null }
         withTimeout(10_000) {
@@ -56,7 +56,7 @@ class GenerationResumeTest {
     fun aRunThatWasKilledHalfwayComesBackWithTheChaptersThatWereDone() = runBlocking {
         val llm = fx.startGated()
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         llm.release()
         withTimeout(10_000) {
             llm.started.receive()
@@ -81,7 +81,6 @@ class GenerationResumeTest {
         val paused = pausedAfterTheFirstChapter(llm)
         val record = fx.store.load()!!.record
         assertEquals("en", record.sourceLang)
-        assertEquals(8, record.cardsPer1000Words)
         assertEquals(paused.deckId, record.deckId)
     }
 
@@ -117,7 +116,7 @@ class GenerationResumeTest {
     @Test
     fun aJobThatCannotBeReadIsForgotten() = runBlocking {
         fx.store.saveBook(byteArrayOf(1, 2, 3)) // not an EPUB
-        fx.store.saveRecord(JobRecord(null, 0, setOf(1), emptyList(), "en", 8))
+        fx.store.saveRecord(JobRecord(null, 0, setOf(1), emptyList(), "en"))
         val restarted = fx.newManager()
         restarted.restore()
         withTimeout(10_000) { fx.store.cleared.receive() }
@@ -128,7 +127,7 @@ class GenerationResumeTest {
     @Test
     fun aJobWithNothingLeftIsForgotten() = runBlocking {
         fx.store.saveBook(loremEpub())
-        fx.store.saveRecord(JobRecord(1, 3, emptySet(), emptyList(), "en", 8))
+        fx.store.saveRecord(JobRecord(1, 3, emptySet(), emptyList(), "en"))
         val restarted = fx.newManager()
         restarted.restore()
         withTimeout(10_000) { fx.store.cleared.receive() }

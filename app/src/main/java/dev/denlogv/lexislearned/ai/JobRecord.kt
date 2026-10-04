@@ -11,17 +11,9 @@ import kotlinx.serialization.Serializable
  * @property remaining indexes of the sections that are not in the deck yet: failed, interrupted or not reached.
  * @property failed descriptions of the sections that failed, to show again after a restart.
  * @property sourceLang the book's language code chosen for this run.
- * @property cardsPer1000Words how many cards were asked for per thousand words.
  */
 @Serializable
-data class JobRecord(
-    val deckId: Long?,
-    val cards: Int,
-    val remaining: Set<Int>,
-    val failed: List<String>,
-    val sourceLang: String,
-    val cardsPer1000Words: Int,
-)
+data class JobRecord(val deckId: Long?, val cards: Int, val remaining: Set<Int>, val failed: List<String>, val sourceLang: String)
 
 /**
  * A job as it was found on disk.

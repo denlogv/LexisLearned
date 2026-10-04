@@ -24,7 +24,7 @@ class GenerationProgressTest {
     /** Starts the test book and gives the model's first reply; returns once the second section's request is in flight. */
     private suspend fun GenerationFixture.GatedLlm.runUntilTheSecondRequest(): EpubBook {
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         release()
         fx.manager.state.await { it is GenState.Running && it.deckId != null }
         withTimeout(10_000) {
@@ -45,7 +45,7 @@ class GenerationProgressTest {
     fun chaptersAppearInTheLibraryWhileLaterOnesAreStillBeingGenerated() = runBlocking {
         val llm = fx.startGated()
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         llm.release()
         val running = fx.manager.state.await { it is GenState.Running && it.deckId != null } as GenState.Running
         assertEquals("Lorem Book", running.title)
@@ -65,7 +65,7 @@ class GenerationProgressTest {
     fun pausingWaitsForTheSectionInProgressAndKeepsItsCards() = runBlocking {
         val llm = fx.startGated()
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         withTimeout(10_000) { llm.started.receive() }
         fx.manager.pauseAfterSection()
         assertTrue((fx.manager.state.value as GenState.Running).pausing)
@@ -93,7 +93,7 @@ class GenerationProgressTest {
     fun pausingBeforeAnythingIsFinishedKeepsEverythingToDo() = runBlocking {
         val llm = fx.startGated()
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         withTimeout(10_000) { llm.started.receive() }
         fx.manager.pauseAfterSection()
         fx.manager.pauseNow()
@@ -123,7 +123,7 @@ class GenerationProgressTest {
         val llm = fx.startGated()
         val paused = pausedAfterTheFirstChapter(llm)
         val rest = GenState.Continuation(paused.deckId, paused.remaining)
-        fx.manager.start(paused.book, rest.selection, "en", 8, rest)
+        fx.manager.start(paused.book, rest.selection, "en", rest)
         llm.release()
         val done = fx.manager.state.await { it is GenState.Finished } as GenState.Finished
         assertEquals(paused.deckId, done.deckId)
@@ -141,7 +141,7 @@ class GenerationProgressTest {
             }
         }
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         val first = fx.manager.state.await { it is GenState.Paused } as GenState.Paused
         assertEquals(setOf(3), first.remaining)
         assertEquals(1, first.failed.size)

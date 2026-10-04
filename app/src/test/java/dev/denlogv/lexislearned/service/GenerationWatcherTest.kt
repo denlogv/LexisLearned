@@ -43,7 +43,7 @@ class GenerationWatcherTest {
         val book = fx.ready()
         watcher.start(PauseRequest.NONE)
         assertNull(finished.receive()) // nothing runs yet: the review of a book has nothing to tell
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         withTimeout(10_000) { llm.started.receive() }
         assertTrue(shown.isNotEmpty())
         assertEquals("Pause after section", shown.last().pauseAfterSectionLabel)
@@ -58,7 +58,7 @@ class GenerationWatcherTest {
     fun theButtonOfTheNotificationPausesTheGeneration() = runBlocking {
         val llm = fx.startGated()
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         withTimeout(10_000) { llm.started.receive() }
         watcher.start(PauseRequest.AFTER_SECTION)
         assertTrue((fx.manager.state.value as GenState.Running).pausing)
@@ -71,7 +71,7 @@ class GenerationWatcherTest {
     fun theNowButtonOfTheNotificationGivesUpTheRequestInFlight() = runBlocking {
         val llm = fx.startGated()
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         withTimeout(10_000) { llm.started.receive() } // the request is never released: only giving it up can end the run
         watcher.start(PauseRequest.NOW)
         assertEquals("Generation paused", withTimeout(10_000) { finished.receive() }!!.title)

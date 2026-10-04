@@ -13,7 +13,7 @@ import org.junit.rules.TemporaryFolder
 class JobStoreTest {
     @get:Rule val folder = TemporaryFolder()
 
-    private val record = JobRecord(7, 12, setOf(3, 5), listOf("Chapter (busy)"), "en", 8)
+    private val record = JobRecord(7, 12, setOf(3, 5), listOf("Chapter (busy)"), "en")
     private val dir get() = File(folder.root, "generation")
 
     @Test
@@ -42,6 +42,15 @@ class JobStoreTest {
         assertNull(store.load())
         store.saveRecord(record)
         assertNull(store.load()) // no book
+    }
+
+    @Test
+    fun aRecordWithAFieldThatIsNoLongerWrittenStillLoads() {
+        val store = FileJobStore(dir)
+        store.saveBook(byteArrayOf(1))
+        val old = """{"deckId":7,"cards":12,"remaining":[3,5],"failed":["Chapter (busy)"],"sourceLang":"en","cardsPer1000Words":8}"""
+        File(dir, "job.json").writeText(old)
+        assertEquals(record, store.load()!!.record)
     }
 
     @Test

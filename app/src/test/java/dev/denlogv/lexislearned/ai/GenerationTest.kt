@@ -102,7 +102,7 @@ class GenerationTest {
     fun fetcherSplitsLongChaptersAndMergesTheAnswers() = runBlocking {
         val llm = ScriptedLlm { _, user -> reply("w${user.length}") }
         val long = (1..3000).joinToString("\n") { "line $it lorem ipsum dolor sit amet consectetur" }
-        val response = ChapterCardFetcher(llm, "SYSTEM").fetch("Book", "Chapter", long, 12)
+        val response = ChapterCardFetcher(llm, "SYSTEM").fetch("Book", "Chapter", long)
         assertTrue(llm.prompts.size > 1)
         assertEquals(llm.prompts.size, response.cards.size)
         assertEquals("Глава", response.nativeTitle)

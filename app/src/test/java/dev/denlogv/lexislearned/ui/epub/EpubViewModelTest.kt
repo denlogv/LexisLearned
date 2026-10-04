@@ -70,7 +70,7 @@ class EpubViewModelTest {
     private suspend fun GenerationManager.runWithOneSectionMissing(): GenState.Paused {
         load(loremEpub())
         val book = (state.await { it is GenState.Ready } as GenState.Ready).book
-        start(book, book.defaultSelection, "en", 8)
+        start(book, book.defaultSelection, "en")
         return state.await { it is GenState.Paused } as GenState.Paused
     }
 
@@ -125,7 +125,7 @@ class EpubViewModelTest {
         files.files["book.epub"] = loremEpub()
         vm.choose("book.epub")
         vm.state.await { it is GenState.Ready }
-        vm.update { it.copy(selected = setOf(2), density = 3) }
+        vm.update { it.copy(selected = setOf(2)) }
         vm.setLevel(CefrLevel.C1)
         assertEquals(CefrLevel.C1, vm.prefs.value.level)
         vm.generate()
