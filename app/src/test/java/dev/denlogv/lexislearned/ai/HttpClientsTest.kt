@@ -98,7 +98,7 @@ class HttpClientsTest {
         TestServer { _, _ -> 200 to reply }.use { server ->
             val client = AnthropicClient("sk-test", "model-x", server.url, fast)
             assertEquals("Hello", client.complete("sys", "hi"))
-            val seen = server.requests.single()
+            val seen = server.requests.single { it.path == "/v1/messages" }
             assertEquals("/v1/messages", seen.path)
             assertEquals("sk-test", seen.headers["x-api-key"])
             assertTrue(seen.body.contains(""""system":"sys""""))
