@@ -1,5 +1,6 @@
 package dev.denlogv.lexislearned.ai
 
+import java.io.IOException
 import java.util.concurrent.CountDownLatch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
@@ -55,6 +56,23 @@ class HttpClientsTest {
         TestServer { _, _ -> if (++calls < 3) 429 to "" else 200 to "{}" }.use { server ->
             assertEquals("{}", fast.post(server.url, emptyMap(), buildJsonObject {}).toString())
             assertEquals(3, server.requests.size)
+        }
+    }
+
+    @Test
+    fun aDroppedConnectionIsRetriedUntilTheServerAnswers() = runBlocking {
+        var calls = 0
+        TestServer { _, _ -> if (++calls < 3) error("hang up without answering") else 200 to "{}" }.use { server ->
+            assertEquals("{}", fast.post(server.url, emptyMap(), buildJsonObject {}).toString())
+            assertTrue(server.requests.size >= 3) // the JDK may repeat a dropped request by itself, so this is a lower bound
+        }
+    }
+
+    @Test
+    fun aServerThatNeverAnswersEndsInTheConnectionError() {
+        TestServer { _, _ -> error("hang up without answering") }.use { server ->
+            assertThrows(IOException::class.java) { runBlocking { fast.post(server.url, emptyMap(), buildJsonObject {}) } }
+            assertTrue(server.requests.size >= 4)
         }
     }
 

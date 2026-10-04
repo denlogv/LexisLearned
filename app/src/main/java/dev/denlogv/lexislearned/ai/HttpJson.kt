@@ -30,22 +30,28 @@ internal class HttpJson(private val retryDelayMs: Long = DEFAULT_RETRY_DELAY_MS)
     private class Response(val code: Int, val text: String)
 
     /**
-     * POSTs a JSON body and parses the JSON reply. Rate limiting (429) and server errors (5xx) are retried.
+     * POSTs a JSON body and parses the JSON reply. Rate limiting (429), server errors (5xx) and connections that fail or time out
+     * are retried, because a deck is paid for per request and a brief network drop should not cost a whole section.
      *
      * @param url the address.
      * @param headers the request headers, for example the API key.
      * @param body the JSON body.
      * @return the reply as a JSON object.
-     * @throws LlmException if the request is rejected or all attempts fail.
+     * @throws LlmException if the request is rejected or all attempts fail on the server's side.
+     * @throws IOException if every attempt fails to connect or to read the reply.
      */
     suspend fun post(url: String, headers: Map<String, String>, body: JsonObject): JsonObject {
-        var failure = LlmException("No request was made")
+        var failure: Exception = LlmException("No request was made")
         repeat(MAX_ATTEMPTS) { attempt ->
             if (attempt > 0) delay(retryDelayMs shl (attempt - 1))
-            val response = send("POST", url, headers, body.toString(), POST_READ_TIMEOUT_MS)
-            if (response.code in SUCCESS) return parse(response.text)
-            failure = failureOf(response)
-            if (!isRetryable(response.code)) throw failure
+            try {
+                val response = send("POST", url, headers, body.toString(), POST_READ_TIMEOUT_MS)
+                if (response.code in SUCCESS) return parse(response.text)
+                failure = failureOf(response)
+                if (!isRetryable(response.code)) throw failure
+            } catch (e: IOException) {
+                failure = e
+            }
         }
         throw failure
     }
