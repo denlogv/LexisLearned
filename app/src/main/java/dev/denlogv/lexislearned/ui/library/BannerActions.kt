@@ -3,8 +3,7 @@ package dev.denlogv.lexislearned.ui.library
 /**
  * What the buttons and taps of the generation banner do.
  *
- * @property onOpenDeck opens the deck with the id given.
- * @property onOpenProgress opens the generation screen.
+ * @property onOpenDeck opens the finished deck with the id given and dismisses the banner.
  * @property onPauseAfterSection pauses a running generation once the section in progress is done.
  * @property onPauseNow pauses a running generation at once, giving up the request in flight.
  * @property onResume resumes a paused generation.
@@ -14,7 +13,6 @@ package dev.denlogv.lexislearned.ui.library
  */
 class BannerActions(
     val onOpenDeck: (Long) -> Unit,
-    val onOpenProgress: () -> Unit,
     val onPauseAfterSection: () -> Unit,
     val onPauseNow: () -> Unit,
     val onResume: () -> Unit,

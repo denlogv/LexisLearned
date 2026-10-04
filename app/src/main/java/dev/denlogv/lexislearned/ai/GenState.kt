@@ -78,7 +78,6 @@ sealed interface GenState {
      * Something went wrong.
      *
      * @property message what happened, for the user.
-     * @property book the book that was being processed, if any, so the user can go back to its review without choosing it again.
      */
-    data class Failed(val message: String, val book: EpubBook? = null) : GenState
+    data class Failed(val message: String) : GenState
 }

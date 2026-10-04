@@ -101,17 +101,6 @@ class EpubViewModelTest {
     }
 
     @Test
-    fun aFailureCanGoBackToTheReviewOfTheSameBook() = runBlocking {
-        files.files["book.epub"] = loremEpub()
-        vm.choose("book.epub")
-        val book = (vm.state.await { it is GenState.Ready } as GenState.Ready).book
-        generation.start(book, book.defaultSelection, "en", 8) // no key is saved
-        assertTrue(vm.state.await { it is GenState.Failed }.let { (it as GenState.Failed).book == book })
-        vm.backToReview()
-        assertEquals(GenState.Ready(book), vm.state.value)
-    }
-
-    @Test
     fun aReviewedBookCanBeReplacedByChoosingAnother() = runBlocking {
         files.files["book.epub"] = loremEpub()
         vm.choose("book.epub")
@@ -145,10 +134,8 @@ class EpubViewModelTest {
     }
 
     @Test
-    fun generateAndPauseDoNothingWithoutABookOrARun() {
+    fun generateDoesNothingWithoutABook() {
         vm.generate()
-        vm.pauseAfterSection()
-        vm.pauseNow()
         assertEquals(GenState.Idle, vm.state.value)
     }
 }

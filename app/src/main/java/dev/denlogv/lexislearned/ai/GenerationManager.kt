@@ -93,7 +93,7 @@ class GenerationManager(
      */
     fun start(book: EpubBook, selected: Set<Int>, sourceLang: String, cardsPer1000Words: Int, continuation: GenState.Continuation? = null) {
         val prefs = settings.prefs.value
-        val llm = clientOrReject(prefs, book) ?: return
+        val llm = clientOrReject(prefs) ?: return
         choices = Choices(sourceLang, cardsPer1000Words)
         val options = GenerationOptions(
             selected = selected,
@@ -171,11 +171,6 @@ class GenerationManager(
         _state.value = GenState.Failed(message)
     }
 
-    /** Returns from [GenState.Failed] to the review of the book, which is still loaded, so the file need not be chosen again. */
-    fun backToReview() {
-        (_state.value as? GenState.Failed)?.book?.let { _state.value = GenState.Ready(it) }
-    }
-
     /** Returns to [GenState.Idle] unless generation is running or paused; a pause is only ended by [discard]. */
     fun reset() {
         if (_state.value !is GenState.Running && _state.value !is GenState.Paused) _state.value = GenState.Idle
@@ -193,14 +188,13 @@ class GenerationManager(
      * Creates the client. If the provider is not set up, a paused generation stays paused with the reason, and anything else fails.
      *
      * @param prefs the current settings.
-     * @param book the book, so the user can go back to its review after a failure.
      * @return the client, or null after rejecting the start.
      */
-    private fun clientOrReject(prefs: Prefs, book: EpubBook): LlmClient? {
+    private fun clientOrReject(prefs: Prefs): LlmClient? {
         val key = settings.apiKey()
         if (!key.isNullOrBlank() && prefs.ready) return clientFactory(prefs, key)
         val message = Providers.missingSetting(prefs)
-        _state.update { if (it is GenState.Paused) it.copy(failed = listOf(message)) else GenState.Failed(message, book) }
+        _state.update { if (it is GenState.Paused) it.copy(failed = listOf(message)) else GenState.Failed(message) }
         return null
     }
 

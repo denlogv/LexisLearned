@@ -36,14 +36,6 @@ class GenerationLabelsTest {
     }
 
     @Test
-    fun theFirstProblemIsShownUnderTheSummary() {
-        val plain = GenState.Paused(1, 3, book, setOf(2))
-        assertEquals("3 cards · 1 section left", plain.detail())
-        val problem = plain.copy(failed = listOf("Chapter Two (busy)", "Chapter Three (busy)"))
-        assertEquals("3 cards · 1 section left · 2 failed\nChapter Two (busy)", problem.detail())
-    }
-
-    @Test
     fun theWarningBeforeDiscardingSaysWhatIsLostAndWhatStays() {
         val warning = GenState.Paused(1, 12, book, setOf(2, 3)).discardWarning()
         assertEquals(

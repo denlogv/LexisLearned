@@ -38,7 +38,6 @@ class GenerationManagerTest {
         fx.manager.start(book, book.defaultSelection, "en", 8)
         val failed = fx.manager.state.value as GenState.Failed
         assertTrue(failed.message.contains("API key"))
-        assertEquals(book, failed.book)
     }
 
     @Test
@@ -97,7 +96,7 @@ class GenerationManagerTest {
     }
 
     @Test
-    fun aRunWithoutAnyCardsFailsAndCanGoBackToTheReview() = runBlocking {
+    fun aRunWithoutAnyCardsFails() = runBlocking {
         fx.settings.setApiKey(Provider.ANTHROPIC, "sk-test")
         fx.answer = { _, user -> if (user.startsWith("Give")) "{}" else """{"cards":[]}""" }
         val book = fx.ready()
@@ -105,8 +104,6 @@ class GenerationManagerTest {
         val failed = fx.manager.state.await { it is GenState.Failed } as GenState.Failed
         assertEquals("No cards were generated.", failed.message)
         assertNull(fx.store.load())
-        fx.manager.backToReview()
-        assertEquals(GenState.Ready(book), fx.manager.state.value)
     }
 
     @Test
@@ -176,12 +173,11 @@ class GenerationManagerTest {
     }
 
     @Test
-    fun pausingResumingDiscardingAndGoingBackDoNothingOutsideTheirStates() {
+    fun pausingResumingAndDiscardingDoNothingOutsideTheirStates() {
         fx.manager.pauseAfterSection()
         fx.manager.pauseNow()
         fx.manager.resume()
         fx.manager.discard()
-        fx.manager.backToReview()
         assertEquals(GenState.Idle, fx.manager.state.value)
     }
 
