@@ -48,11 +48,26 @@ private fun NavGraphBuilder.libraryRoutes(nav: NavHostController) {
             onOpenDeck = { nav.navigate(Routes.deck(it)) },
             onSettings = { nav.navigate(Routes.SETTINGS) },
             onEpub = { nav.navigate(Routes.EPUB) },
+            onContinueEpub = { nav.navigate(Routes.EPUB_CONTINUE) },
         )
     }
     composable(Routes.SETTINGS) { SettingsScreen(onBack = { nav.popBackStack() }) }
-    composable(Routes.EPUB) {
+    epubScreen(nav, Routes.EPUB, continuing = false)
+    epubScreen(nav, Routes.EPUB_CONTINUE, continuing = true)
+}
+
+/**
+ * Adds a "deck from EPUB" screen at a route.
+ *
+ * @receiver the graph being built.
+ * @param nav the controller used to move between screens.
+ * @param route where the screen is.
+ * @param continuing whether the screen is for adding the rest of a book to a deck that was stopped early.
+ */
+private fun NavGraphBuilder.epubScreen(nav: NavHostController, route: String, continuing: Boolean) {
+    composable(route) {
         EpubScreen(
+            continuing = continuing,
             onBack = { nav.popBackStack() },
             onSettings = { nav.navigate(Routes.SETTINGS) },
             onOpenDeck = { id -> nav.navigate(Routes.deck(id)) { popUpTo(Routes.LIBRARY) } },

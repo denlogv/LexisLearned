@@ -6,7 +6,8 @@ import java.io.IOException
 import kotlinx.serialization.SerializationException
 
 /**
- * The sections of a book being turned into chapters of one deck, one after the other.
+ * The sections of a book being turned into chapters of one deck, and what became of each: a section is handled once its cards
+ * were fetched, so the ones that failed, were interrupted or were never reached stay [unfinished] and can be done in a later run.
  *
  * @param header the deck's details without chapters.
  * @param sections the sections to process, in reading order.
@@ -20,14 +21,18 @@ class GenerationRun internal constructor(
     private val systemPrompt: String,
 ) {
     private val failedSections = ArrayList<String>()
+    private val handled = HashSet<Int>()
     private var stored = 0
 
     /** Descriptions of the sections that failed and were skipped. */
     val failed: List<String> get() = failedSections.toList()
 
+    /** Indexes of the sections whose cards were not fetched: the failed ones, the interrupted one and those not reached. */
+    val unfinished: Set<Int> get() = sections.map { it.index }.filter { it !in handled }.toSet()
+
     /**
      * Processes the sections in order until all are done or [GenerationOptions.isCancelled] says to stop. A section whose request
-     * fails is recorded and skipped.
+     * fails is recorded and skipped; one that is interrupted by cancellation counts as not done.
      *
      * @param llm the model to ask.
      * @param options card counts, progress, cancellation and per-chapter callbacks. Progress counts the sections whose chapter was added
@@ -40,7 +45,9 @@ class GenerationRun internal constructor(
             if (options.isCancelled()) return
             options.onProgress(stored, sections.size, assembler.cardCount, section.title)
             val wanted = (section.words * options.cardsPer1000Words / 1000).coerceIn(options.minCards, options.maxCards)
-            val chapter = fetchOrRecord(fetcher, section, wanted)?.let { assembler.add(section, it) }
+            val reply = fetchOrRecord(fetcher, section, wanted)
+            if (reply != null) handled += section.index
+            val chapter = reply?.let { assembler.add(section, it) }
             if (chapter != null) {
                 options.onChapter(header, chapter)
                 stored++

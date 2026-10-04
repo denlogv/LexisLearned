@@ -1,11 +1,14 @@
 package dev.denlogv.lexislearned.ui.library
 
 import dev.denlogv.lexislearned.ai.GenState
+import dev.denlogv.lexislearned.epub.EpubBook
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class BannerUiTest {
+    private val book = EpubBook("Lorem", "en", emptyList())
+
     @Test
     fun aRunningJobShowsProgressAndCanBeStopped() {
         val banner = GenState.Running(done = 3, total = 12, cards = 45, message = "Chapter", title = "Lorem").toBanner()!!
@@ -22,12 +25,22 @@ class BannerUiTest {
     }
 
     @Test
-    fun aFinishedDeckOpensWhenTapped() {
-        val banner = GenState.Finished(deckId = 7, cards = 1, failed = emptyList()).toBanner()!!
+    fun aCompleteDeckOpensWhenTappedAndCannotBeContinued() {
+        val banner = GenState.Finished(deckId = 7, cards = 1, failed = emptyList(), book = book, unfinished = emptySet()).toBanner()!!
+        assertEquals("Deck ready", banner.title)
         assertEquals("1 card", banner.detail)
         assertEquals(7L, banner.deckId)
         assertEquals(false, banner.running)
-        assertEquals("1 card · 2 section(s) skipped", GenState.Finished(7, 1, listOf("a", "b")).toBanner()!!.detail)
+        assertEquals(false, banner.resumable)
+    }
+
+    @Test
+    fun aDeckWithSectionsLeftCanBeContinued() {
+        val banner = GenState.Finished(7, 12, listOf("x (busy)"), book, setOf(3, 4)).toBanner()!!
+        assertEquals("Deck partly ready", banner.title)
+        assertEquals("12 cards · 2 sections left · 1 failed", banner.detail)
+        assertEquals(true, banner.resumable)
+        assertEquals(false, GenState.Finished(7, 12, emptyList(), null, setOf(3)).toBanner()!!.resumable) // no book kept
     }
 
     @Test

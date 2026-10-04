@@ -1,6 +1,7 @@
 package dev.denlogv.lexislearned.ai
 
 import dev.denlogv.lexislearned.domain.CefrLevel
+import dev.denlogv.lexislearned.domain.Deck
 import dev.denlogv.lexislearned.domain.PartRef
 import dev.denlogv.lexislearned.epub.EpubBook
 import java.util.UUID
@@ -30,7 +31,7 @@ class CardGenerator(
      * @throws LlmException if the provider rejects the API key.
      */
     suspend fun generate(book: EpubBook, options: GenerationOptions = GenerationOptions()): GenerationResult {
-        val run = start(book, options)
+        val run = start(book, options, null)
         run.process(llm, options)
         return run.result()
     }
@@ -40,17 +41,26 @@ class CardGenerator(
      *
      * @param book the book.
      * @param options which sections to process and the book's language.
+     * @param base a deck made from this book earlier, to add the new chapters to: its titles, languages and parts are reused and
+     * its words are not repeated; null for a new deck.
      * @return the run.
      * @throws LlmException if the provider rejects the API key.
      */
-    suspend fun start(book: EpubBook, options: GenerationOptions): GenerationRun {
-        val sourceLang = options.sourceLang.ifBlank { book.language }.take(2).lowercase().ifBlank { "en" }
+    suspend fun start(book: EpubBook, options: GenerationOptions, base: Deck?): GenerationRun {
+        val sourceLang = base?.frontLang ?: options.sourceLang.ifBlank { book.language }.take(2).lowercase().ifBlank { "en" }
+        val target = base?.backLang ?: targetLang
         val sections = book.chapters.filter { it.index in (options.selected ?: book.defaultSelection) }
-        val parts = sections.mapNotNull { it.part }.distinct()
-        val titles = TitleTranslator(llm, Languages.nameOf(targetLang)).translate(book.title, parts)
-        val assembler = DeckAssembler(partRefsFor(parts, titles))
-        val prompt = Prompts.build(Languages.nameOf(sourceLang), Languages.nameOf(targetLang), level, customRules, extraInstructions)
-        return GenerationRun(assembler.header(book.title, titles.book, sourceLang, targetLang), sections, assembler, prompt)
+        val known = base?.chapters?.mapNotNull { it.part }?.associateBy { it.title }.orEmpty()
+        val newParts = sections.mapNotNull { it.part }.distinct().filter { it !in known }
+        val titles = if (base != null && newParts.isEmpty()) {
+            TitleTranslator.Titles(base.nativeTitle, emptyMap())
+        } else {
+            TitleTranslator(llm, Languages.nameOf(target)).translate(book.title, newParts)
+        }
+        val assembler = DeckAssembler(known + partRefsFor(newParts, titles), base)
+        val prompt = Prompts.build(Languages.nameOf(sourceLang), Languages.nameOf(target), level, customRules, extraInstructions)
+        val header = assembler.header(base?.title ?: book.title, base?.nativeTitle ?: titles.book, sourceLang, target)
+        return GenerationRun(header, sections, assembler, prompt)
     }
 
     /**

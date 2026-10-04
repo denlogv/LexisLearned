@@ -13,11 +13,15 @@ import java.util.UUID
  * numbers the chapters and attaches them to their parts.
  *
  * @param partRefs the parts by title, for the chapters that belong to one.
+ * @param base a deck that is continued: its words count as seen, its chapters come first in the numbering and the result, and
+ * the result keeps its id; null for a new deck.
  */
-internal class DeckAssembler(private val partRefs: Map<String, PartRef>) {
-    private val deckId = UUID.randomUUID().toString()
-    private val seen = HashSet<String>()
-    private val chapters = ArrayList<Chapter>()
+internal class DeckAssembler(private val partRefs: Map<String, PartRef>, base: Deck? = null) {
+    private val deckId = base?.id ?: UUID.randomUUID().toString()
+    private val seen = HashSet<String>().apply {
+        base?.chapters?.forEach { c -> c.cards.forEach { add(it.front.text.trim().lowercase()) } }
+    }
+    private val chapters = ArrayList(base?.chapters.orEmpty())
 
     /** Number of cards added so far. */
     val cardCount: Int get() = chapters.sumOf { it.cards.size }

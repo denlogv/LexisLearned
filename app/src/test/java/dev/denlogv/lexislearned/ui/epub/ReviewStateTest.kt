@@ -1,6 +1,7 @@
 package dev.denlogv.lexislearned.ui.epub
 
 import androidx.compose.ui.state.ToggleableState
+import dev.denlogv.lexislearned.ai.GenState
 import dev.denlogv.lexislearned.epub.EpubBook
 import dev.denlogv.lexislearned.epub.EpubChapter
 import org.junit.Assert.assertEquals
@@ -19,6 +20,13 @@ class ReviewStateTest {
             EpubChapter(4, "Three", words(10)),
         ),
     )
+
+    @Test
+    fun continuingADeckStartsWithOnlyTheMissingSections() {
+        val s = ReviewState.initial(book, GenState.Continuation(deckId = 5, selection = setOf(3)))
+        assertEquals(setOf(3), s.selected)
+        assertEquals("de", s.lang)
+    }
 
     @Test
     fun initialStateUsesSuggestionsAndDeclaredLanguage() {

@@ -8,8 +8,11 @@ object Routes {
     /** The settings screen. */
     const val SETTINGS = "settings"
 
-    /** The "deck from EPUB" screen. */
+    /** The "deck from EPUB" screen, for a new book. */
     const val EPUB = "epub"
+
+    /** The "deck from EPUB" screen, for adding the rest of a book to a deck that was stopped early. */
+    const val EPUB_CONTINUE = "epub/continue"
 
     /** Pattern of the book screen. */
     const val DECK = "deck/{deckId}"

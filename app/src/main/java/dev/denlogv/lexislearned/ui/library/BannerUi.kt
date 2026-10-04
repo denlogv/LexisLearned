@@ -11,8 +11,16 @@ import dev.denlogv.lexislearned.ui.plural
  * @property progress how far generation is, from 0 to 1, or null if there is no bar.
  * @property deckId the deck to open when the banner is tapped; null opens the EPUB screen instead.
  * @property running whether generation is still going, which is when the banner offers to stop it.
+ * @property resumable whether generation was stopped before the end, which is when the banner offers to continue it.
  */
-data class BannerUi(val title: String, val detail: String, val progress: Float?, val deckId: Long?, val running: Boolean)
+data class BannerUi(
+    val title: String,
+    val detail: String,
+    val progress: Float?,
+    val deckId: Long?,
+    val running: Boolean,
+    val resumable: Boolean = false,
+)
 
 /**
  * Works out the banner for a generation state.
@@ -29,12 +37,25 @@ fun GenState.toBanner(): BannerUi? = when (this) {
         running = true,
     )
     is GenState.Finished -> BannerUi(
-        title = "Deck ready",
-        detail = plural(cards, "card") + if (failed.isEmpty()) "" else " · ${failed.size} section(s) skipped",
+        title = if (unfinished.isEmpty()) "Deck ready" else "Deck partly ready",
+        detail = finishedDetail(),
         progress = null,
         deckId = deckId,
         running = false,
+        resumable = book != null && unfinished.isNotEmpty(),
     )
     is GenState.Failed -> BannerUi("Deck generation failed", message, null, null, false)
     else -> null
 }
+
+/**
+ * The second line for a finished run: the cards, the sections that are left to continue with and how many of them failed.
+ *
+ * @receiver the finished state.
+ * @return for example "12 cards · 3 sections left · 1 failed".
+ */
+private fun GenState.Finished.finishedDetail(): String = listOfNotNull(
+    plural(cards, "card"),
+    "${plural(unfinished.size, "section")} left".takeIf { unfinished.isNotEmpty() },
+    "${failed.size} failed".takeIf { failed.isNotEmpty() },
+).joinToString(" · ")

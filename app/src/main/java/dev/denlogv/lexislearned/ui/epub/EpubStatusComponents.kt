@@ -45,7 +45,7 @@ fun StatusPanel(
             GenState.Idle -> IdlePanel(prefs, onChoose)
             GenState.Loading -> CircularProgressIndicator()
             is GenState.Running -> RunningPanel(state, vm::cancel, onOpenDeck)
-            is GenState.Finished -> FinishedPanel(state, onOpenDeck)
+            is GenState.Finished -> FinishedPanel(state, onOpenDeck, vm::continueGeneration)
             is GenState.Failed -> FailedPanel(state, vm::restart, onSettings)
             is GenState.Ready -> Unit
         }
@@ -93,14 +93,17 @@ private fun RunningPanel(state: GenState.Running, onStop: () -> Unit, onOpenDeck
  *
  * @param state the result.
  * @param onOpenDeck called with the new deck's id.
+ * @param onContinue called when the user wants to add the missing sections to the deck.
  */
 @Composable
-private fun FinishedPanel(state: GenState.Finished, onOpenDeck: (Long) -> Unit) {
+private fun FinishedPanel(state: GenState.Finished, onOpenDeck: (Long) -> Unit, onContinue: () -> Unit) {
     Text("Created a deck with ${plural(state.cards, "card")}.", style = MaterialTheme.typography.titleMedium)
+    if (state.unfinished.isNotEmpty()) Text("Not in the deck yet: ${plural(state.unfinished.size, "section")}.")
     if (state.failed.isNotEmpty()) {
         Text("${state.failed.size} section(s) failed and were skipped:", color = MaterialTheme.colorScheme.error)
         state.failed.take(MAX_LISTED_FAILURES).forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
     }
+    if (state.book != null && state.unfinished.isNotEmpty()) Button(onContinue) { Text("Continue with the rest") }
     Button({ onOpenDeck(state.deckId) }) { Text("Open deck") }
 }
 

@@ -34,10 +34,11 @@ import dev.denlogv.lexislearned.ui.appViewModel
  * @param onOpenDeck called with a deck's id when the user opens it.
  * @param onSettings called when the user opens the settings.
  * @param onEpub called when the user wants to create a deck from an EPUB.
+ * @param onContinueEpub called when the user wants to add the rest of a book to a deck that was stopped early.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LibraryScreen(onOpenDeck: (Long) -> Unit, onSettings: () -> Unit, onEpub: () -> Unit) {
+fun LibraryScreen(onOpenDeck: (Long) -> Unit, onSettings: () -> Unit, onEpub: () -> Unit, onContinueEpub: () -> Unit) {
     val vm = rememberLibraryViewModel()
     val snackbar = remember { SnackbarHostState() }
     var pending by remember { mutableStateOf<DeckAction?>(null) }
@@ -58,6 +59,7 @@ fun LibraryScreen(onOpenDeck: (Long) -> Unit, onSettings: () -> Unit, onEpub: ()
             vm = vm,
             onOpenDeck = onOpenDeck,
             onEpub = onEpub,
+            onContinueEpub = onContinueEpub,
             onExport = { deck, format -> startExport(deck.id, deck.title, format, exporter) { pendingExport = it } },
             onAction = { pending = it },
             modifier = Modifier.padding(padding),
@@ -102,6 +104,7 @@ private fun startExport(
  * @param vm the library view model.
  * @param onOpenDeck called with a deck's id when it is opened.
  * @param onEpub called to open the generation screen.
+ * @param onContinueEpub called to open the review for adding the rest of a book to a deck that was stopped early.
  * @param onExport called when the user exports a deck in a format.
  * @param onAction called when the user asks for an action that needs confirmation.
  * @param modifier layout modifier.
@@ -111,6 +114,7 @@ private fun LibraryBody(
     vm: LibraryViewModel,
     onOpenDeck: (Long) -> Unit,
     onEpub: () -> Unit,
+    onContinueEpub: () -> Unit,
     onExport: (DeckSummary, DeckFormat) -> Unit,
     onAction: (DeckAction) -> Unit,
     modifier: Modifier,
@@ -119,7 +123,7 @@ private fun LibraryBody(
     val generating by vm.generating.collectAsState()
     Column(modifier) {
         generating.toBanner()?.let {
-            GenerationBanner(it, onOpenDeck, onEpub, vm::stopGeneration, vm::dismissGeneration)
+            GenerationBanner(it, onOpenDeck, onEpub, vm::stopGeneration, onContinueEpub, vm::dismissGeneration)
         }
         DeckList(decks, onOpenDeck, onExport, onAction, Modifier.weight(1f))
     }

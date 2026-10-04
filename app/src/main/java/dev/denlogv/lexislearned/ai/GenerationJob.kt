@@ -2,27 +2,30 @@ package dev.denlogv.lexislearned.ai
 
 import dev.denlogv.lexislearned.data.DeckStorage
 import dev.denlogv.lexislearned.data.Prefs
+import dev.denlogv.lexislearned.domain.Deck
 import dev.denlogv.lexislearned.epub.EpubBook
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * One generation of a deck from a book, storing each chapter as it is finished and ending in a [GenState].
+ * One generation of a deck from a book, new or continued, storing each chapter as it is finished and ending in a [GenState].
  *
  * @param book the book.
  * @param prefs the settings in effect when generation started.
  * @param storage where the deck is stored.
  * @param options which sections to use, card counts, progress and cancellation callbacks; [GenerationOptions.isCancelled] also
  * tells a stop requested by the user from any other cancellation.
+ * @param continuation the deck to add the chapters to, or null to create a new deck.
  * @param onStored called after each chapter was stored, with the deck's id and the number of cards stored so far.
  */
 internal class GenerationJob(
     private val book: EpubBook,
     private val prefs: Prefs,
-    storage: DeckStorage,
+    private val storage: DeckStorage,
     private val options: GenerationOptions,
+    private val continuation: GenState.Continuation?,
     private val onStored: (deckId: Long, cards: Int) -> Unit,
 ) {
-    private val writer = DeckWriter(storage)
+    private var writer = DeckWriter(storage)
     private var run: GenerationRun? = null
 
     /**
@@ -37,7 +40,8 @@ internal class GenerationJob(
     suspend fun execute(llm: LlmClient): GenState {
         val streaming = options.copy(onChapter = { deck, chapter -> onStored(writer.add(deck, chapter), writer.cards) })
         return try {
-            val current = generator(llm).start(book, streaming).also { run = it }
+            val base = continuation?.let { open(it) }
+            val current = generator(llm).start(book, streaming, base).also { run = it }
             current.process(llm, streaming)
             outcome(emptyList())
         } catch (e: CancellationException) {
@@ -47,6 +51,16 @@ internal class GenerationJob(
             outcome(listOf(e.message ?: "Generation failed"))
         }
     }
+
+    /**
+     * Loads the deck that is continued and makes the writer add to it.
+     *
+     * @param target the deck to continue.
+     * @return the stored deck.
+     * @throws IllegalStateException if the deck no longer exists.
+     */
+    private suspend fun open(target: GenState.Continuation): Deck =
+        storage.export(target.deckId).also { writer = DeckWriter(storage, target.deckId, it.cardCount) }
 
     /**
      * Creates the generator for this job's settings.
@@ -61,11 +75,12 @@ internal class GenerationJob(
      * The state after the work: the deck if one exists, otherwise a failure.
      *
      * @param extraFailures problems that ended the work, added to the sections that failed.
-     * @return [GenState.Finished] or [GenState.Failed].
+     * @return [GenState.Finished], with the sections that were not done, or [GenState.Failed].
      */
     private fun outcome(extraFailures: List<String>): GenState {
         val failed = run?.failed.orEmpty() + extraFailures
         val id = writer.deckId ?: return GenState.Failed(failed.firstOrNull() ?: "No cards were generated.", book)
-        return GenState.Finished(id, writer.cards, failed)
+        val left = run?.unfinished ?: continuation?.selection.orEmpty()
+        return GenState.Finished(id, writer.cards, failed, book, left)
     }
 }
