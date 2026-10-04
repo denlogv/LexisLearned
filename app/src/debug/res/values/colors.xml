@@ -1,0 +1,4 @@
+<resources>
+    <!-- Orange instead of the release indigo, so the debug build is easy to tell apart on the home screen. -->
+    <color name="ic_launcher_background">#E8590C</color>
+</resources>
