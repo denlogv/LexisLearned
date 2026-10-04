@@ -58,7 +58,6 @@ fun LibraryScreen(onOpenDeck: (Long) -> Unit, onSettings: () -> Unit, onEpub: ()
         LibraryBody(
             vm = vm,
             onOpenDeck = onOpenDeck,
-            onEpub = onEpub,
             onContinueEpub = onContinueEpub,
             onExport = { deck, format -> startExport(deck.id, deck.title, format, exporter) { pendingExport = it } },
             onAction = { pending = it },
@@ -103,7 +102,6 @@ private fun startExport(
  *
  * @param vm the library view model.
  * @param onOpenDeck called with a deck's id when it is opened.
- * @param onEpub called to open the generation screen.
  * @param onContinueEpub called to open the review to pick the sections of a paused generation.
  * @param onExport called when the user exports a deck in a format.
  * @param onAction called when the user asks for an action that needs confirmation.
@@ -113,7 +111,6 @@ private fun startExport(
 private fun LibraryBody(
     vm: LibraryViewModel,
     onOpenDeck: (Long) -> Unit,
-    onEpub: () -> Unit,
     onContinueEpub: () -> Unit,
     onExport: (DeckSummary, DeckFormat) -> Unit,
     onAction: (DeckAction) -> Unit,
@@ -124,8 +121,10 @@ private fun LibraryBody(
     Column(modifier) {
         generating.toBanner()?.let {
             val actions = BannerActions(
-                onOpenDeck,
-                onEpub,
+                { id ->
+                    vm.dismissGeneration() // the finished deck is where the banner leads, and it has done its job
+                    onOpenDeck(id)
+                },
                 vm::pauseGenerationAfterSection,
                 vm::pauseGenerationNow,
                 vm::resumeGeneration,

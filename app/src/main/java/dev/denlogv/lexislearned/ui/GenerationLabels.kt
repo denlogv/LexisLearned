@@ -55,14 +55,6 @@ fun GenState.Paused.summary(): String = listOfNotNull(
 fun GenState.Paused.resumeLabel(): String = if (failed.isEmpty()) "Resume" else "Retry"
 
 /**
- * The line under the headline of a generation that is not finished, with the reason when a section failed.
- *
- * @receiver the paused state.
- * @return [summary], and on a second line the first problem if there is one.
- */
-fun GenState.Paused.detail(): String = summary() + failed.firstOrNull()?.let { "\n$it" }.orEmpty()
-
-/**
  * The warning shown before the rest of a paused generation is given up: what is lost and what stays.
  *
  * @receiver the paused state.

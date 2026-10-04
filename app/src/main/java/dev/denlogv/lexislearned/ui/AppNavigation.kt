@@ -70,7 +70,6 @@ private fun NavGraphBuilder.epubScreen(nav: NavHostController, route: String, co
             continuing = continuing,
             onBack = { nav.popBackStack() },
             onSettings = { nav.navigate(Routes.SETTINGS) },
-            onOpenDeck = { id -> nav.navigate(Routes.deck(id)) { popUpTo(Routes.LIBRARY) } },
         )
     }
 }

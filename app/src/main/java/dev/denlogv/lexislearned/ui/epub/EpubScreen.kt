@@ -25,22 +25,22 @@ import dev.denlogv.lexislearned.ui.appViewModel
 import dev.denlogv.lexislearned.ui.library.ContentResolverDeckFiles
 
 /**
- * The "deck from EPUB" screen: choose a book, review its structure, generate the deck and follow the progress.
+ * The "deck from EPUB" screen: choose a book, review its structure and start generating the deck. Generation is followed on the
+ * banner of the library, so the screen returns there as soon as it has started.
  *
  * @param continuing whether the screen is for picking the sections of a paused generation.
- * @param onBack called when the back button is pressed.
+ * @param onBack called when the back button is pressed, and when generation has started.
  * @param onSettings called to open the settings.
- * @param onOpenDeck called with the id of the deck that was created.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EpubScreen(continuing: Boolean, onBack: () -> Unit, onSettings: () -> Unit, onOpenDeck: (Long) -> Unit) {
+fun EpubScreen(continuing: Boolean, onBack: () -> Unit, onSettings: () -> Unit) {
     val context = LocalContext.current
     val vm = appViewModel { app, _ -> EpubViewModel(app.generation, app.settings, ContentResolverDeckFiles(context), continuing) }
     val prefs by vm.prefs.collectAsState()
     val review by vm.review.collectAsState()
     val reviewed by vm.target.collectAsState()
-    val generate = rememberGenerateAction(vm)
+    val generate = rememberGenerateAction(vm, onBack)
     Scaffold(
         topBar = {
             TopAppBar(
@@ -51,19 +51,17 @@ fun EpubScreen(continuing: Boolean, onBack: () -> Unit, onSettings: () -> Unit, 
         bottomBar = {
             reviewed?.let { GenerateBar(review.estimate(it.book), review.selected.size, prefs, generate, onSettings) }
         },
-    ) { padding -> EpubBody(vm, onSettings, onOpenDeck, Modifier.padding(padding)) }
+    ) { padding -> EpubBody(vm, Modifier.padding(padding)) }
 }
 
 /**
- * The content of the screen: the review of a book when there is one, otherwise the stage the generation is in.
+ * The content of the screen: the review of a book when there is one, otherwise the stage before generation.
  *
  * @param vm the screen's view model.
- * @param onSettings called to open the settings.
- * @param onOpenDeck called with the id of the deck that was created.
  * @param modifier layout modifier.
  */
 @Composable
-private fun EpubBody(vm: EpubViewModel, onSettings: () -> Unit, onOpenDeck: (Long) -> Unit, modifier: Modifier) {
+private fun EpubBody(vm: EpubViewModel, modifier: Modifier) {
     val state by vm.state.collectAsState()
     val prefs by vm.prefs.collectAsState()
     val review by vm.review.collectAsState()
@@ -73,21 +71,27 @@ private fun EpubBody(vm: EpubViewModel, onSettings: () -> Unit, onOpenDeck: (Lon
     if (current != null) {
         ReviewList(current.book, review, prefs.level, vm::update, vm::setLevel, current.continuation != null, vm::restart, modifier)
     } else {
-        Box(modifier) { StatusPanel(state, prefs, vm, { picker.launch(arrayOf("application/epub+zip", "*/*")) }, onSettings, onOpenDeck) }
+        Box(modifier) { StatusPanel(state, prefs) { picker.launch(arrayOf("application/epub+zip", "*/*")) } }
     }
 }
 
 /**
  * The action of the "Generate deck" button. Before the first generation on Android 13 and later it asks for the permission to show the
- * progress notification; whatever the answer is, generation then starts, because it works without the notification.
+ * progress notification; whatever the answer is, generation then starts, because it works without the notification, and the screen
+ * returns to the library, where the banner follows the generation.
  *
  * @param vm the screen's view model.
+ * @param onStarted called once generation has started.
  * @return the action to run when the button is tapped.
  */
 @Composable
-private fun rememberGenerateAction(vm: EpubViewModel): () -> Unit {
+private fun rememberGenerateAction(vm: EpubViewModel, onStarted: () -> Unit): () -> Unit {
     val context = LocalContext.current
-    val asker = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { vm.generate() }
+    val start = {
+        vm.generate()
+        onStarted()
+    }
+    val asker = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { start() }
     return {
         val granted =
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
@@ -98,7 +102,7 @@ private fun rememberGenerateAction(vm: EpubViewModel): () -> Unit {
         ) {
             asker.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
-            vm.generate()
+            start()
         }
     }
 }

@@ -124,7 +124,7 @@ internal class GenerationJob(
         return when {
             left.isNotEmpty() -> GenState.Paused(id, writer.cards, book, left, failed)
             id != null -> GenState.Finished(id, writer.cards)
-            else -> GenState.Failed(failed.firstOrNull() ?: "No cards were generated.", book)
+            else -> GenState.Failed(failed.firstOrNull() ?: "No cards were generated.")
         }
     }
 

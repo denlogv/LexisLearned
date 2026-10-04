@@ -49,7 +49,7 @@ class BannerUiTest {
     }
 
     @Test
-    fun aPausedGenerationIsHandledOnTheBannerAndTappingItGoesNowhere() {
+    fun aPausedGenerationIsHandledOnTheBanner() {
         val banner = GenState.Paused(7, 12, book, setOf(3, 4)).toBanner()!!
         assertEquals("Generation paused", banner.title)
         assertEquals("12 cards · 2 sections left", banner.detail)
@@ -58,7 +58,6 @@ class BannerUiTest {
         assertNull(banner.pauseNowLabel)
         assertFalse(banner.running)
         assertNull(banner.deckId)
-        assertFalse(banner.tappable)
         assertTrue(banner.discardWarning!!.startsWith("2 sections left will not be generated"))
         assertFalse(banner.dismissible)
     }
@@ -70,19 +69,50 @@ class BannerUiTest {
     }
 
     @Test
-    fun aGenerationStoppedByAProblemOffersARetryAndSaysWhy() {
+    fun aGenerationStoppedByAProblemOffersARetryAndKeepsTheProblemsForTheInfo() {
         val banner = GenState.Paused(null, 0, book, setOf(3), listOf("x (busy)")).toBanner()!!
         assertEquals("Generation stopped by a problem", banner.title)
-        assertEquals("0 cards · 1 section left · 1 failed\nx (busy)", banner.detail)
+        assertEquals("0 cards · 1 section left · 1 failed", banner.detail) // the problem itself is in the info
+        assertTrue(banner.info.contains("• x (busy)"))
         assertEquals("Retry", banner.resumeLabel)
         assertNotNull(banner.discardWarning)
     }
 
     @Test
-    fun theOtherBannersCanBeTapped() {
-        assertTrue(GenState.Running(0, 1, 0, "").toBanner()!!.tappable)
-        assertTrue(GenState.Finished(7, 1).toBanner()!!.tappable)
-        assertTrue(GenState.Failed("HTTP 401").toBanner()!!.tappable)
+    fun onlyAFinishedDeckLeadsAnywhere() {
+        assertNull(GenState.Running(0, 1, 0, "", deckId = 7).toBanner()!!.deckId) // even with a deck so far: the list below has it
+        assertNull(GenState.Paused(7, 12, book, setOf(3)).toBanner()!!.deckId)
+        assertNull(GenState.Failed("HTTP 401").toBanner()!!.deckId)
+        assertEquals(7L, GenState.Finished(7, 1).toBanner()!!.deckId)
+    }
+
+    @Test
+    fun everyBannerHasAnInfoThatExplainsIt() {
+        val states = listOf(
+            GenState.Running(0, 1, 0, ""),
+            GenState.Paused(7, 12, book, setOf(3)),
+            GenState.Finished(7, 1),
+            GenState.Failed("HTTP 401"),
+        )
+        states.forEach { assertTrue(it.toString(), it.toBanner()!!.info.isNotBlank()) }
+    }
+
+    @Test
+    fun theCrossDismissesAResultOrAFailureAndDiscardsTheRestOfAPausedGeneration() {
+        val finished = GenState.Finished(7, 1).toBanner()!!
+        assertTrue(finished.closable)
+        assertEquals("Dismiss", finished.closeLabel)
+        val failed = GenState.Failed("HTTP 401").toBanner()!!
+        assertTrue(failed.closable)
+        assertEquals("Dismiss", failed.closeLabel)
+        val paused = GenState.Paused(7, 12, book, setOf(3)).toBanner()!!
+        assertTrue(paused.closable)
+        assertEquals("Discard the rest", paused.closeLabel)
+    }
+
+    @Test
+    fun aRunningGenerationHasNoCross() {
+        assertFalse(GenState.Running(0, 1, 0, "").toBanner()!!.closable)
     }
 
     @Test

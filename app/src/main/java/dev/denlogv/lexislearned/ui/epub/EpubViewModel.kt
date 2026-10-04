@@ -96,15 +96,6 @@ class EpubViewModel(
         continuingRest.value = false
     }
 
-    /** Pauses once the current section is done, and keeps what is finished. */
-    fun pauseAfterSection() = generation.pauseAfterSection()
-
-    /** Pauses at once, giving up the request in flight, and keeps what is finished. */
-    fun pauseNow() = generation.pauseNow()
-
-    /** Goes back to the review of the book after a failure, without choosing the file again. */
-    fun backToReview() = generation.backToReview()
-
     /** Goes back to choosing a file. */
     fun restart() = generation.reset()
 }
