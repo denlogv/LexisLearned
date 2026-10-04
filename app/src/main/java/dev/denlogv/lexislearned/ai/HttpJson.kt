@@ -16,11 +16,16 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * Minimal JSON-over-HTTP client for the LLM providers: timeouts, retries of overloaded servers, readable errors.
+ * Minimal HTTP client for the LLM providers: timeouts, retries of overloaded servers, readable errors. Replies of the model are
+ * read as a stream, so a long reply is never cut short by a limit on the total time, only by the server going silent.
  *
  * @param retryDelayMs the pause before the first retry; it doubles for each further retry.
+ * @param idleTimeoutMs how long a streamed reply may stay completely silent before the request fails.
  */
-internal class HttpJson(private val retryDelayMs: Long = DEFAULT_RETRY_DELAY_MS) {
+internal class HttpJson(
+    private val retryDelayMs: Long = DEFAULT_RETRY_DELAY_MS,
+    private val idleTimeoutMs: Int = DEFAULT_IDLE_TIMEOUT_MS,
+) {
     /**
      * A raw HTTP response.
      *
@@ -30,30 +35,63 @@ internal class HttpJson(private val retryDelayMs: Long = DEFAULT_RETRY_DELAY_MS)
     private class Response(val code: Int, val text: String)
 
     /**
-     * POSTs a JSON body and parses the JSON reply. Rate limiting (429), server errors (5xx) and connections that fail or time out
-     * are retried, because a deck is paid for per request and a brief network drop should not cost a whole section.
+     * POSTs a JSON body and passes on the reply as it arrives. A reply that is a server-sent event stream is delivered event by
+     * event (the text after `data:`), so the caller sees the first part while the model is still writing; any other reply is
+     * delivered whole, as a single event, for servers that ignore the request to stream. Rate limiting (429), server errors (5xx)
+     * and connections that fail or time out are retried as long as nothing was delivered yet, because a deck is paid for per
+     * request and a brief network drop should not cost a whole section; once part of the reply was delivered, a retry would hand
+     * it over twice.
      *
      * @param url the address.
      * @param headers the request headers, for example the API key.
      * @param body the JSON body.
-     * @return the reply as a JSON object.
+     * @param onData called with the data of each event, on a background thread, in order. It may throw [LlmException] to abort.
      * @throws LlmException if the request is rejected or all attempts fail on the server's side.
-     * @throws IOException if every attempt fails to connect or to read the reply.
+     * @throws IOException if every attempt fails to connect or to read, or the connection fails or stays silent for longer than the
+     * idle timeout after part of the reply was delivered.
      */
-    suspend fun post(url: String, headers: Map<String, String>, body: JsonObject): JsonObject {
+    suspend fun stream(url: String, headers: Map<String, String>, body: JsonObject, onData: (String) -> Unit) {
+        var delivered = false
+        val tracked: (String) -> Unit = {
+            delivered = true
+            onData(it)
+        }
         var failure: Exception = LlmException("No request was made")
         repeat(MAX_ATTEMPTS) { attempt ->
             if (attempt > 0) delay(retryDelayMs shl (attempt - 1))
-            try {
-                val response = send("POST", url, headers, body.toString(), POST_READ_TIMEOUT_MS)
-                if (response.code in SUCCESS) return parse(response.text)
-                failure = failureOf(response)
-                if (!isRetryable(response.code)) throw failure
-            } catch (e: IOException) {
-                failure = e
-            }
+            failure = streamOnce(url, headers, body.toString(), tracked) { delivered } ?: return
         }
         throw failure
+    }
+
+    /**
+     * Makes one attempt of [stream] and decides whether its failure is worth another.
+     *
+     * @param url the address.
+     * @param headers the request headers.
+     * @param body the JSON body as text.
+     * @param onData receives the data of each event.
+     * @param delivered whether any data was handed to [onData] so far, in this attempt or an earlier one.
+     * @return null if the reply was read to the end, or the failure to retry: a rate limit, a server error or a connection that
+     * failed or went silent, while nothing was delivered yet.
+     * @throws LlmException if the request is rejected, or fails after part of the reply was delivered.
+     * @throws IOException if the connection fails or goes silent after part of the reply was delivered.
+     */
+    private suspend fun streamOnce(
+        url: String,
+        headers: Map<String, String>,
+        body: String,
+        onData: (String) -> Unit,
+        delivered: () -> Boolean,
+    ): Exception? = try {
+        exchange("POST", url, headers, body, idleTimeoutMs) { readEvents(it, onData) }
+        null
+    } catch (e: LlmException) {
+        if (delivered() || !isRetryable(e.code)) throw e
+        e
+    } catch (e: IOException) {
+        if (delivered()) throw e
+        e
     }
 
     /**
@@ -65,66 +103,98 @@ internal class HttpJson(private val retryDelayMs: Long = DEFAULT_RETRY_DELAY_MS)
      * @throws LlmException if the server answers with an error.
      */
     suspend fun get(url: String, headers: Map<String, String>): JsonObject {
-        val response = send("GET", url, headers, null, GET_READ_TIMEOUT_MS)
+        val response = exchange("GET", url, headers, null, GET_READ_TIMEOUT_MS) { Response(it.responseCode, bodyOf(it)) }
         if (response.code !in SUCCESS) throw failureOf(response)
-        return parse(response.text)
+        return parseJsonObject(response.text)
     }
 
     /**
      * Performs one request on the IO dispatcher.
      *
+     * @param <T> what the reader returns.
      * @param method the HTTP method.
      * @param url the address.
      * @param headers the request headers.
      * @param body the request body, or null for none.
-     * @param readTimeoutMs how long to wait for the reply.
-     * @return the response, also for error status codes.
+     * @param readTimeoutMs how long a single read may wait for the server.
+     * @param read reads the answer from the connection, also for error status codes.
+     * @return what [read] returned.
      * @throws kotlinx.coroutines.CancellationException if the caller is cancelled; the request is abandoned at once.
      */
-    private suspend fun send(method: String, url: String, headers: Map<String, String>, body: String?, readTimeoutMs: Int): Response =
-        withContext(Dispatchers.IO) {
-            val conn = URL(url).openConnection() as HttpURLConnection
-            // A blocking read ignores coroutine cancellation; closing the connection is what ends it early.
-            val watcher = launch {
-                try {
-                    awaitCancellation()
-                } finally {
-                    conn.disconnect()
-                }
-            }
+    private suspend fun <T> exchange(
+        method: String,
+        url: String,
+        headers: Map<String, String>,
+        body: String?,
+        readTimeoutMs: Int,
+        read: (HttpURLConnection) -> T,
+    ): T = withContext(Dispatchers.IO) {
+        val conn = URL(url).openConnection() as HttpURLConnection
+        // A blocking read ignores coroutine cancellation; closing the connection is what ends it early.
+        val watcher = launch {
             try {
-                conn.requestMethod = method
-                conn.connectTimeout = CONNECT_TIMEOUT_MS
-                conn.readTimeout = readTimeoutMs
-                conn.setRequestProperty("content-type", "application/json")
-                headers.forEach { (name, value) -> conn.setRequestProperty(name, value) }
-                if (body != null) {
-                    conn.doOutput = true
-                    conn.outputStream.use { it.write(body.toByteArray()) }
-                }
-                val stream = if (conn.responseCode < HTTP_ERROR) conn.inputStream else conn.errorStream
-                Response(conn.responseCode, stream?.readBytes()?.toString(Charsets.UTF_8).orEmpty())
-            } catch (e: IOException) {
-                ensureActive() // Cancelled: report that instead of the "socket closed" error our own disconnect caused.
-                throw e
+                awaitCancellation()
             } finally {
-                watcher.cancel()
                 conn.disconnect()
             }
         }
+        try {
+            conn.requestMethod = method
+            conn.connectTimeout = CONNECT_TIMEOUT_MS
+            conn.readTimeout = readTimeoutMs
+            conn.setRequestProperty("content-type", "application/json")
+            headers.forEach { (name, value) -> conn.setRequestProperty(name, value) }
+            if (body != null) {
+                conn.doOutput = true
+                conn.outputStream.use { it.write(body.toByteArray()) }
+            }
+            read(conn)
+        } catch (e: IOException) {
+            ensureActive() // Cancelled: report that instead of the "socket closed" error our own disconnect caused.
+            throw e
+        } finally {
+            watcher.cancel()
+            conn.disconnect()
+        }
+    }
 
     /**
-     * Parses a reply body.
+     * Reads the answer to a streaming request and hands its events to [onData].
      *
-     * @param text the body.
-     * @return the JSON object.
-     * @throws LlmException if the body is not a JSON object.
+     * @param conn the connection a request was sent on.
+     * @param onData receives the data of each event, or the whole body for an answer that is not an event stream.
+     * @throws LlmException if the server answered with an error status.
      */
-    private fun parse(text: String): JsonObject = try {
-        json.parseToJsonElement(text).jsonObject
-    } catch (e: IllegalArgumentException) {
-        throw LlmException("The server did not return JSON: ${e.message}", cause = e)
+    private fun readEvents(conn: HttpURLConnection, onData: (String) -> Unit) {
+        if (conn.responseCode !in SUCCESS) throw failureOf(Response(conn.responseCode, bodyOf(conn)))
+        conn.inputStream.bufferedReader().use { reader ->
+            if (conn.contentType.orEmpty().startsWith(EVENT_STREAM)) {
+                reader.lineSequence().mapNotNull(::dataOf).forEach(onData)
+            } else {
+                onData(reader.readText())
+            }
+        }
     }
+
+    /**
+     * The text of a response body, for successful and failed responses alike.
+     *
+     * @param conn the connection a request was sent on.
+     * @return the body, empty if there is none.
+     */
+    private fun bodyOf(conn: HttpURLConnection): String {
+        val stream = if (conn.responseCode < HTTP_ERROR) conn.inputStream else conn.errorStream
+        return stream?.readBytes()?.toString(Charsets.UTF_8).orEmpty()
+    }
+
+    /**
+     * The payload of one line of an event stream.
+     *
+     * @param line a line of the stream.
+     * @return the text after `data:`, or null for any other line (event names, comments, blank lines) and for an empty payload.
+     */
+    private fun dataOf(line: String): String? =
+        line.takeIf { it.startsWith("data:") }?.removePrefix("data:")?.trim()?.takeIf { it.isNotEmpty() }
 
     /**
      * Builds the error for a failed response, using the provider's own message when it gave one.
@@ -149,9 +219,10 @@ internal class HttpJson(private val retryDelayMs: Long = DEFAULT_RETRY_DELAY_MS)
 
     private companion object {
         const val DEFAULT_RETRY_DELAY_MS = 2000L
+        const val DEFAULT_IDLE_TIMEOUT_MS = 120_000
         const val MAX_ATTEMPTS = 4
         const val CONNECT_TIMEOUT_MS = 20_000
-        const val POST_READ_TIMEOUT_MS = 180_000
+        const val EVENT_STREAM = "text/event-stream"
         const val GET_READ_TIMEOUT_MS = 30_000
         const val HTTP_ERROR = 400
         const val TOO_MANY_REQUESTS = 429

@@ -1,10 +1,8 @@
 package dev.denlogv.lexislearned.ai
 
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * A model offered by a provider.
@@ -87,14 +85,6 @@ class ModelCatalog internal constructor(private val http: HttpJson) {
         if (!chatModel.containsMatchIn(id) || notChat.containsMatchIn(id)) return null
         return id to (text("created")?.toLongOrNull() ?: 0L)
     }
-
-    /**
-     * A text or number field as text.
-     *
-     * @param name the field name.
-     * @return the value, or null if the field is absent.
-     */
-    private fun JsonObject.text(name: String): String? = this[name]?.jsonPrimitive?.contentOrNull
 
     private companion object {
         const val PAGE_SIZE = 100
