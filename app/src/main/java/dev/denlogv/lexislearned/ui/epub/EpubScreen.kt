@@ -1,5 +1,8 @@
 package dev.denlogv.lexislearned.ui.epub
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -17,6 +20,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import dev.denlogv.lexislearned.ui.appViewModel
 import dev.denlogv.lexislearned.ui.library.ContentResolverDeckFiles
 
@@ -36,6 +40,7 @@ fun EpubScreen(continuing: Boolean, onBack: () -> Unit, onSettings: () -> Unit, 
     val prefs by vm.prefs.collectAsState()
     val review by vm.review.collectAsState()
     val reviewed by vm.target.collectAsState()
+    val generate = rememberGenerateAction(vm)
     Scaffold(
         topBar = {
             TopAppBar(
@@ -44,7 +49,7 @@ fun EpubScreen(continuing: Boolean, onBack: () -> Unit, onSettings: () -> Unit, 
             )
         },
         bottomBar = {
-            reviewed?.let { GenerateBar(review.estimate(it.book), review.selected.size, prefs, vm::generate, onSettings) }
+            reviewed?.let { GenerateBar(review.estimate(it.book), review.selected.size, prefs, generate, onSettings) }
         },
     ) { padding -> EpubBody(vm, onSettings, onOpenDeck, Modifier.padding(padding)) }
 }
@@ -69,5 +74,31 @@ private fun EpubBody(vm: EpubViewModel, onSettings: () -> Unit, onOpenDeck: (Lon
         ReviewList(current.book, review, prefs.level, vm::update, vm::setLevel, current.continuation != null, vm::restart, modifier)
     } else {
         Box(modifier) { StatusPanel(state, prefs, vm, { picker.launch(arrayOf("application/epub+zip", "*/*")) }, onSettings, onOpenDeck) }
+    }
+}
+
+/**
+ * The action of the "Generate deck" button. Before the first generation on Android 13 and later it asks for the permission to show the
+ * progress notification; whatever the answer is, generation then starts, because it works without the notification.
+ *
+ * @param vm the screen's view model.
+ * @return the action to run when the button is tapped.
+ */
+@Composable
+private fun rememberGenerateAction(vm: EpubViewModel): () -> Unit {
+    val context = LocalContext.current
+    val asker = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { vm.generate() }
+    return {
+        val granted =
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        if (shouldAskForNotifications(
+                Build.VERSION.SDK_INT,
+                granted,
+            )
+        ) {
+            asker.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            vm.generate()
+        }
     }
 }

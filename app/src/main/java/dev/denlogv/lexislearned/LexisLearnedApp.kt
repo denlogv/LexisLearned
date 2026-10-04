@@ -11,6 +11,7 @@ import dev.denlogv.lexislearned.data.DeckStorage
 import dev.denlogv.lexislearned.data.Migrations
 import dev.denlogv.lexislearned.data.Settings
 import dev.denlogv.lexislearned.data.StudyRepository
+import dev.denlogv.lexislearned.service.ServiceKeepAlive
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,7 +53,7 @@ class LexisLearnedApp : Application() {
         library = DeckLibrary(db)
         study = StudyRepository(db)
         storage = DeckStorage(db)
-        generation = GenerationManager(appScope, storage, settings, FileJobStore(File(filesDir, "generation")))
+        generation = GenerationManager(appScope, storage, settings, FileJobStore(File(filesDir, "generation")), ServiceKeepAlive(this))
         generation.restore()
     }
 }
