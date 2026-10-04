@@ -1,9 +1,13 @@
 package dev.denlogv.lexislearned.ai
 
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -69,10 +73,19 @@ internal class HttpJson(private val retryDelayMs: Long = DEFAULT_RETRY_DELAY_MS)
      * @param body the request body, or null for none.
      * @param readTimeoutMs how long to wait for the reply.
      * @return the response, also for error status codes.
+     * @throws kotlinx.coroutines.CancellationException if the caller is cancelled; the request is abandoned at once.
      */
     private suspend fun send(method: String, url: String, headers: Map<String, String>, body: String?, readTimeoutMs: Int): Response =
         withContext(Dispatchers.IO) {
             val conn = URL(url).openConnection() as HttpURLConnection
+            // A blocking read ignores coroutine cancellation; closing the connection is what ends it early.
+            val watcher = launch {
+                try {
+                    awaitCancellation()
+                } finally {
+                    conn.disconnect()
+                }
+            }
             try {
                 conn.requestMethod = method
                 conn.connectTimeout = CONNECT_TIMEOUT_MS
@@ -85,7 +98,11 @@ internal class HttpJson(private val retryDelayMs: Long = DEFAULT_RETRY_DELAY_MS)
                 }
                 val stream = if (conn.responseCode < HTTP_ERROR) conn.inputStream else conn.errorStream
                 Response(conn.responseCode, stream?.readBytes()?.toString(Charsets.UTF_8).orEmpty())
+            } catch (e: IOException) {
+                ensureActive() // Cancelled: report that instead of the "socket closed" error our own disconnect caused.
+                throw e
             } finally {
+                watcher.cancel()
                 conn.disconnect()
             }
         }

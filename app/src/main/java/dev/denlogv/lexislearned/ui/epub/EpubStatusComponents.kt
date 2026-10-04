@@ -44,7 +44,7 @@ fun StatusPanel(
         when (state) {
             GenState.Idle -> IdlePanel(prefs, onChoose)
             GenState.Loading -> CircularProgressIndicator()
-            is GenState.Running -> RunningPanel(state, vm::cancel)
+            is GenState.Running -> RunningPanel(state, vm::cancel, onOpenDeck)
             is GenState.Finished -> FinishedPanel(state, onOpenDeck)
             is GenState.Failed -> FailedPanel(state, vm::restart, onSettings)
             is GenState.Ready -> Unit
@@ -69,17 +69,22 @@ private fun IdlePanel(prefs: Prefs, onChoose: () -> Unit) {
 }
 
 /**
- * Progress while cards are generated.
+ * Progress while cards are generated. The deck is already in the library once its first chapter is done, and grows from there.
  *
  * @param state the progress.
  * @param onStop called when the user stops early.
+ * @param onOpenDeck called with the id of the deck as far as it is generated.
  */
 @Composable
-private fun RunningPanel(state: GenState.Running, onStop: () -> Unit) {
+private fun RunningPanel(state: GenState.Running, onStop: () -> Unit, onOpenDeck: (Long) -> Unit) {
     AppProgress(if (state.total == 0) 0f else state.done / state.total.toFloat(), Modifier.fillMaxWidth())
     Text("${state.done} / ${plural(state.total, "section")} · ${plural(state.cards, "card")} so far")
     Text(state.message, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Text("Keep the app open. You can leave this screen; generation continues.", style = MaterialTheme.typography.bodySmall)
+    Text(
+        "Chapters appear in your library as soon as they are ready. You can leave this screen; progress is shown in the library.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    state.deckId?.let { Button({ onOpenDeck(it) }) { Text("Open deck so far") } }
     OutlinedButton(onStop) { Text("Stop and keep what's done") }
 }
 

@@ -1,6 +1,8 @@
 package dev.denlogv.lexislearned.ui.library
 
 import dev.denlogv.lexislearned.MainDispatcherRule
+import dev.denlogv.lexislearned.ai.GenState
+import dev.denlogv.lexislearned.ai.GenerationManager
 import dev.denlogv.lexislearned.await
 import dev.denlogv.lexislearned.data.DeckLibrary
 import dev.denlogv.lexislearned.data.DeckStorage
@@ -10,6 +12,8 @@ import dev.denlogv.lexislearned.format.NativeFormat
 import dev.denlogv.lexislearned.sampleDeck
 import dev.denlogv.lexislearned.ui.MemoryFiles
 import java.io.ByteArrayOutputStream
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -30,7 +34,9 @@ class LibraryViewModelTest {
     private val storage = DeckStorage(db)
 
     // Created lazily: a view model must be built after the rule has replaced the main dispatcher.
-    private val vm by lazy { LibraryViewModel(library, storage, testSettings(), files) }
+    private val settings = testSettings()
+    private val generation = GenerationManager(CoroutineScope(Dispatchers.Unconfined), storage, settings)
+    private val vm by lazy { LibraryViewModel(library, storage, settings, files, generation) }
 
     private suspend fun next(): String = withTimeout(10_000) { vm.messages.first() }
 
@@ -71,5 +77,14 @@ class LibraryViewModelTest {
         vm.delete(id)
         vm.decks.await { it != null && it.isEmpty() }
         Unit
+    }
+
+    @Test
+    fun generationProgressIsExposedAndCanBeDismissed() = runBlocking {
+        generation.fail("offline")
+        assertEquals(GenState.Failed("offline"), vm.generating.value)
+        vm.stopGeneration() // nothing is running, so this changes nothing
+        vm.dismissGeneration()
+        assertEquals(GenState.Idle, vm.generating.value)
     }
 }
