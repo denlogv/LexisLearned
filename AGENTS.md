@@ -96,7 +96,29 @@ The history of `main` is meant to be read, so it is curated before it is merged 
 
 ## Working as an agent
 
-- Make the smallest change that solves the task; do not refactor unrelated code in the same change.
+### No shortcuts: clean code, clean design, clean architecture
+
+- Prefer the clean solution over the quick one. Do not trade clean code, a clean design or a clean architecture for a smaller diff,
+  fewer files or less work.
+- A lint, size or complexity limit that a change runs into is a signal about the design, not an obstacle. Fix the design: split the
+  class, extract the function, give the responsibility a home of its own. Do not raise a threshold, add a `@Suppress` or tuck the code
+  somewhere convenient. A suppression is only for a warning that is wrong in this case, with a comment saying why it is wrong;
+  "the proper fix is bigger than my change" is not a reason.
+- At every level from a function up to a module, just do it correctly, without asking: split a class that has grown a second
+  responsibility, rename what is misleading, remove duplication you introduced, give a new concern its own class, move code to where it
+  belongs, change an interface and update all its callers. Do it as part of the change, in a commit of its own where it is a separate
+  step. How many files this touches is not a reason to ask or to cut a corner.
+- Ask first only when the request would mean refactoring the entire codebase: a sweeping change to how most of the app is built, such
+  as replacing the architecture pattern, the state management, the persistence or networking stack, or the navigation approach
+  everywhere. Say so before starting. State plainly what it costs (how much of the code is touched, risk to existing behaviour,
+  effort), name the realistic options including the proper one, recommend one, and let the user choose. Never quietly pick the cheap
+  variant, and never quietly take the expensive one.
+- Be upfront afterwards too: if something is a shortcut, a compromise or unfinished, say so plainly in the report and the pull request.
+
+### Everyday rules
+
+- Keep the scope of a change small: solve the task and do not refactor unrelated code in the same change. Scope is not quality: in the
+  code the change touches, follow the rules above.
 - Do not commit, push, tag or publish unless asked to.
 - Say in the pull request that an AI agent wrote the change (see the pull request template); do not hide it and do not overstate
   how much was verified.
