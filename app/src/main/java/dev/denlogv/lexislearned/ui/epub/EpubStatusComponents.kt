@@ -97,7 +97,8 @@ private fun RunningPanel(state: GenState.Running, pause: PauseActions, onOpenDec
     Text(state.summary())
     Text(state.message, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Text(
-        "Chapters appear in your library as soon as they are ready. You can leave this screen; progress is shown in the library. " +
+        "Chapters appear in your library as soon as they are ready. You can leave this screen or switch to another app: generation " +
+            "goes on in the background and shows its progress in a notification. " +
             "“$PAUSE_AFTER_SECTION_LABEL” waits for the section in progress, or for the first one if none has started yet; " +
             "that request is paid for already. “$PAUSE_NOW_LABEL” gives the request in flight up, and the section is done again on resume.",
         style = MaterialTheme.typography.bodySmall,

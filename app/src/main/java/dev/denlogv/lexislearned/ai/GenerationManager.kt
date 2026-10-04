@@ -33,6 +33,8 @@ typealias ClientFactory = (Prefs, String) -> LlmClient
  * @param storage where the deck is stored.
  * @param settings provider, key, level and prompt settings.
  * @param store where an unfinished generation is kept between launches of the app.
+ * @param keepAlive asked to keep the process alive each time a generation starts; it ends by itself when the state is no longer
+ * [GenState.Running].
  * @param clientFactory creates the LLM client; tests replace it with a fake.
  */
 class GenerationManager(
@@ -40,6 +42,7 @@ class GenerationManager(
     private val storage: DeckStorage,
     private val settings: Settings,
     store: JobStore,
+    private val keepAlive: KeepAlive = KeepAlive.None,
     private val clientFactory: ClientFactory = Providers::defaultClient,
 ) {
     private val _state = MutableStateFlow<GenState>(GenState.Idle)
@@ -107,6 +110,7 @@ class GenerationManager(
                 publish { it.copy(deckId = id, cards = cards) }
             }
         _state.value = GenState.Running(0, selected.size, 0, "Starting…", book.title, continuation?.deckId)
+        keepAlive.hold()
         launch(job, llm)
     }
 

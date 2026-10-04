@@ -10,5 +10,6 @@ made and are not edited afterwards; a later decision that changes course gets a 
 | [0003](0003-bring-your-own-api-key.md) | AI deck generation uses the user's own API key, without a backend | Accepted |
 | [0004](0004-epub-structure-review.md) | EPUB structure is detected by heuristics and always reviewed by the user | Accepted |
 | [0005](0005-resumable-generation.md) | A deck generation is a resumable job whose progress is kept on disk | Accepted |
+| [0006](0006-foreground-service-for-generation.md) | A deck is generated under a foreground service | Accepted |
 
 To add one, copy the structure of an existing record (Context, Decision, Consequences) and take the next number.
