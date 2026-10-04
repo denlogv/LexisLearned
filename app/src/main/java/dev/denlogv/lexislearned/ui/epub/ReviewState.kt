@@ -7,15 +7,6 @@ import dev.denlogv.lexislearned.epub.EpubChapter
 import dev.denlogv.lexislearned.ui.plural
 import kotlin.math.roundToInt
 
-/** Cards requested per 1,000 words unless the user changes it. */
-const val DEFAULT_DENSITY = 8
-
-/** Fewest cards asked for from one section. */
-private const val MIN_CARDS = 3
-
-/** Most cards asked for from one section. */
-private const val MAX_CARDS = 60
-
 /** Rough number of model input tokens (in thousands) per word of book text, including the instructions around it. */
 private const val TOKENS_PER_WORD = 1.4
 
@@ -27,9 +18,8 @@ private const val THOUSAND = 1000
  *
  * @property selected indexes of the sections that will be turned into cards.
  * @property lang the book's language code.
- * @property density cards requested per 1,000 words.
  */
-data class ReviewState(val selected: Set<Int>, val lang: String, val density: Int = DEFAULT_DENSITY) {
+data class ReviewState(val selected: Set<Int>, val lang: String) {
     /**
      * Selects or deselects a single section.
      *
@@ -53,11 +43,12 @@ data class ReviewState(val selected: Set<Int>, val lang: String, val density: In
      * Estimates the size of the request.
      *
      * @param book the book.
-     * @return the expected number of cards and input tokens for the current selection.
+     * @return the expected number of input tokens for the current selection. The number of cards is not estimated: it depends on
+     * how many new words the model finds in each section.
      */
     fun estimate(book: EpubBook): Estimate {
-        val chosen = book.chapters.filter { it.index in selected }
-        return Estimate(chosen.sumOf { cardsFor(it, density) }, (chosen.sumOf { it.words } * TOKENS_PER_WORD / THOUSAND).roundToInt())
+        val words = book.chapters.filter { it.index in selected }.sumOf { it.words }
+        return Estimate((words * TOKENS_PER_WORD / THOUSAND).roundToInt())
     }
 
     /** Creates the starting choices. */
@@ -78,10 +69,9 @@ data class ReviewState(val selected: Set<Int>, val lang: String, val density: In
 /**
  * The expected size of a generation request.
  *
- * @property cards number of cards.
  * @property tokensK input tokens in thousands.
  */
-data class Estimate(val cards: Int, val tokensK: Int)
+data class Estimate(val tokensK: Int)
 
 /**
  * Consecutive sections of one part, or a single section that belongs to no part.
@@ -111,15 +101,6 @@ fun groupByPart(chapters: List<EpubChapter>): List<ChapterGroup> {
 }
 
 /**
- * How many cards to ask for from one section.
- *
- * @param chapter the section.
- * @param density cards per 1,000 words.
- * @return the count, kept between 3 and 60.
- */
-fun cardsFor(chapter: EpubChapter, density: Int): Int = (chapter.words * density / THOUSAND).coerceIn(MIN_CARDS, MAX_CARDS)
-
-/**
  * The state of a part's checkbox.
  *
  * @param group the part's sections.
@@ -146,11 +127,9 @@ fun bookSummary(book: EpubBook): String {
 }
 
 /**
- * The line under a section's title: its length, expected cards and why it is skipped by default.
+ * The line under a section's title: its length and why it is skipped by default.
  *
  * @param chapter the section.
- * @param density cards per 1,000 words.
- * @return for example "1,200 words · ~9 cards · front/back matter".
+ * @return for example "1,200 words · front/back matter".
  */
-fun chapterDetail(chapter: EpubChapter, density: Int): String =
-    "${plural(chapter.words, "word")} · ~${plural(cardsFor(chapter, density), "card")}" + (chapter.skipReason?.let { " · $it" } ?: "")
+fun chapterDetail(chapter: EpubChapter): String = plural(chapter.words, "word") + (chapter.skipReason?.let { " · $it" } ?: "")

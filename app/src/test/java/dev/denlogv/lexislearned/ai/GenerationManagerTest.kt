@@ -35,7 +35,7 @@ class GenerationManagerTest {
     @Test
     fun startingWithoutAKeyFailsAtOnce() = runBlocking {
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         val failed = fx.manager.state.value as GenState.Failed
         assertTrue(failed.message.contains("API key"))
     }
@@ -45,13 +45,13 @@ class GenerationManagerTest {
         fx.settings.setProvider(Provider.OPENAI_COMPATIBLE)
         fx.settings.setApiKey(Provider.OPENAI_COMPATIBLE, "k")
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         assertTrue((fx.manager.state.value as GenState.Failed).message.contains("server address"))
         fx.settings.setBaseUrl("ftp://nope")
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         assertTrue((fx.manager.state.value as GenState.Failed).message.contains("server address"))
         fx.settings.setBaseUrl("http://192.168.1.5:11434/v1/")
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         assertTrue((fx.manager.state.value as GenState.Failed).message.contains("model"))
         assertTrue(fx.created.isEmpty())
     }
@@ -63,7 +63,7 @@ class GenerationManagerTest {
         fx.settings.setBaseUrl("http://192.168.1.5:11434/v1/")
         fx.settings.setModel("llama3")
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         fx.manager.state.await { it is GenState.Finished }
         assertEquals(Triple(Provider.OPENAI_COMPATIBLE, "k", "llama3"), fx.created.single())
     }
@@ -72,7 +72,7 @@ class GenerationManagerTest {
     fun generationImportsTheDeck() = runBlocking {
         fx.settings.setApiKey(Provider.ANTHROPIC, "sk-test")
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         val done = fx.manager.state.await { it is GenState.Finished } as GenState.Finished
         assertEquals(2, done.cards) // the second chapter repeats the first one's words, which are dropped
         assertEquals(1, fx.library.decks(1).first().size)
@@ -87,7 +87,7 @@ class GenerationManagerTest {
         fx.settings.setApiKey(Provider.ANTHROPIC, "sk-test")
         fx.answer = { _, user -> if (user.startsWith("Give")) "{}" else "garbage" }
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         val paused = fx.manager.state.await { it is GenState.Paused } as GenState.Paused
         assertNull(paused.deckId)
         assertEquals(book.defaultSelection, paused.remaining)
@@ -100,7 +100,7 @@ class GenerationManagerTest {
         fx.settings.setApiKey(Provider.ANTHROPIC, "sk-test")
         fx.answer = { _, user -> if (user.startsWith("Give")) "{}" else """{"cards":[]}""" }
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         val failed = fx.manager.state.await { it is GenState.Failed } as GenState.Failed
         assertEquals("No cards were generated.", failed.message)
         assertNull(fx.store.load())
@@ -111,7 +111,7 @@ class GenerationManagerTest {
         fx.settings.setApiKey(Provider.ANTHROPIC, "sk-bad")
         fx.answer = { _, _ -> throw LlmException("HTTP 401: invalid x-api-key", 401) }
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         val paused = fx.manager.state.await { it is GenState.Paused } as GenState.Paused
         assertEquals(listOf("HTTP 401: invalid x-api-key"), paused.failed)
         assertNull(paused.deckId)
@@ -130,7 +130,7 @@ class GenerationManagerTest {
             if (!user.startsWith("Give")) fx.manager.pauseAfterSection() // asked while the first section is in progress
             if (user.startsWith("Give")) "{}" else GenerationFixture.CARDS_REPLY
         }
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         val paused = fx.manager.state.await { it is GenState.Paused } as GenState.Paused
         assertEquals(2, paused.cards) // the section in progress was finished, not thrown away
         assertEquals(setOf(3), paused.remaining)
@@ -149,7 +149,7 @@ class GenerationManagerTest {
             }
         }
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         val paused = fx.manager.state.await { it is GenState.Paused } as GenState.Paused
         assertEquals(2, paused.cards)
         assertEquals(listOf("HTTP 401: rejected"), paused.failed)
@@ -162,7 +162,7 @@ class GenerationManagerTest {
         fx.settings.setApiKey(Provider.ANTHROPIC, "sk-test")
         fx.answer = { _, user -> if (user.startsWith("Give")) "{}" else throw LlmException("HTTP 500: busy", 500) }
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         val paused = fx.manager.state.await { it is GenState.Paused } as GenState.Paused
         fx.settings.setApiKey(Provider.ANTHROPIC, "")
         fx.manager.resume()
@@ -184,11 +184,11 @@ class GenerationManagerTest {
     @Test
     fun theProcessIsKeptAliveForEveryRunButNotForOneThatCannotStart() = runBlocking {
         val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8) // no key
+        fx.manager.start(book, book.defaultSelection, "en") // no key
         assertEquals(0, fx.held)
         fx.settings.setApiKey(Provider.ANTHROPIC, "sk-test")
         fx.answer = { _, user -> if (user.startsWith("Give")) "{}" else throw LlmException("HTTP 500: busy", 500) }
-        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.start(book, book.defaultSelection, "en")
         fx.manager.state.await { it is GenState.Paused }
         fx.manager.resume()
         fx.manager.state.await { it is GenState.Paused && it.failed.size == 2 }

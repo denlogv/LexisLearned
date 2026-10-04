@@ -43,7 +43,7 @@ class GenerationRun internal constructor(
      * fails is recorded and skipped; one that is interrupted by cancellation counts as not done.
      *
      * @param llm the model to ask.
-     * @param options card counts, progress, cancellation and per-chapter callbacks. Progress counts the sections whose chapter was added
+     * @param options progress, cancellation and per-chapter callbacks. Progress counts the sections whose chapter was added
      * to the deck, not the ones that were tried: a section that failed or had nothing new does not advance it.
      * @throws LlmException if the provider rejects the API key.
      */
@@ -66,13 +66,12 @@ class GenerationRun internal constructor(
      *
      * @param fetcher asks the model for the cards.
      * @param section the section.
-     * @param options card counts, progress and per-chapter callbacks.
+     * @param options progress and per-chapter callbacks.
      * @throws LlmException if the provider rejects the API key.
      */
     private suspend fun handle(fetcher: ChapterCardFetcher, section: EpubChapter, options: GenerationOptions) {
         options.onProgress(stored, sections.size, assembler.cardCount, section.title)
-        val wanted = (section.words * options.cardsPer1000Words / 1000).coerceIn(options.minCards, options.maxCards)
-        val reply = fetchOrRecord(fetcher, section, wanted)
+        val reply = fetchOrRecord(fetcher, section)
         if (reply != null) handled += section.index
         val chapter = reply?.let { assembler.add(section, it) }
         if (chapter != null) {
@@ -95,12 +94,11 @@ class GenerationRun internal constructor(
      *
      * @param fetcher asks the model for the cards.
      * @param section the section.
-     * @param wanted roughly how many cards are wanted.
      * @return the model's reply, or null if the section failed.
      * @throws LlmException if the provider rejects the API key.
      */
-    private suspend fun fetchOrRecord(fetcher: ChapterCardFetcher, section: EpubChapter, wanted: Int): ChapterResponse? = try {
-        fetcher.fetch(header.title, section.title, section.text, wanted)
+    private suspend fun fetchOrRecord(fetcher: ChapterCardFetcher, section: EpubChapter): ChapterResponse? = try {
+        fetcher.fetch(header.title, section.title, section.text)
     } catch (e: LlmException) {
         if (e.code in AUTH_ERRORS) throw e
         failedSections += "${section.title} (${e.message})"

@@ -63,20 +63,16 @@ class ReviewStateTest {
     }
 
     @Test
-    fun cardCountIsClampedAndEstimated() {
-        assertEquals(3, cardsFor(book.chapters[3], 8))
-        assertEquals(16, cardsFor(book.chapters[1], 8))
-        assertEquals(60, cardsFor(EpubChapter(9, "x", words(100000)), 20))
-        val est = ReviewState(setOf(2, 3), "en").estimate(book)
-        assertEquals(24, est.cards)
-        assertEquals(4, est.tokensK)
+    fun estimateCountsTheInputTokensOfTheSelection() {
+        assertEquals(4, ReviewState(setOf(2, 3), "en").estimate(book).tokensK)
+        assertEquals(0, ReviewState(emptySet(), "en").estimate(book).tokensK)
     }
 
     @Test
     fun summariesDescribeBookAndSections() {
         assertEquals("4 sections in 1 part · ~3k words", bookSummary(book))
         assertEquals("1 section · 10 words", bookSummary(EpubBook("x", "en", listOf(book.chapters[3]))))
-        assertEquals("10 words · ~3 cards · front/back matter", chapterDetail(book.chapters[0], 8))
-        assertEquals("10 words · ~3 cards", chapterDetail(book.chapters[3], 8))
+        assertEquals("10 words · front/back matter", chapterDetail(book.chapters[0]))
+        assertEquals("10 words", chapterDetail(book.chapters[3]))
     }
 }

@@ -92,7 +92,7 @@ class EpubViewModel(
     fun generate() {
         val reviewed = target.value ?: return
         val choices = review.value
-        generation.start(reviewed.book, choices.selected, choices.lang, choices.density, reviewed.continuation)
+        generation.start(reviewed.book, choices.selected, choices.lang, reviewed.continuation)
         continuingRest.value = false
     }
 

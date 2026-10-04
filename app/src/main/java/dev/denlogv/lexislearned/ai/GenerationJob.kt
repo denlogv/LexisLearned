@@ -107,8 +107,7 @@ internal class GenerationJob(
      * @param failed the problems so far.
      * @return the record.
      */
-    private fun record(left: Set<Int>, failed: List<String>) =
-        JobRecord(writer.deckId, writer.cards, left, failed, options.sourceLang, options.cardsPer1000Words)
+    private fun record(left: Set<Int>, failed: List<String>) = JobRecord(writer.deckId, writer.cards, left, failed, options.sourceLang)
 
     /**
      * The state after the work.

@@ -60,15 +60,9 @@ class GenerationManager(
     @Volatile private var pauseAfterNextSection = false
 
     private var epub: ByteArray? = null
-    private var choices = Choices("en", GenerationOptions().cardsPer1000Words)
 
-    /**
-     * What the user chose when generation was started, which a resume repeats.
-     *
-     * @property sourceLang the book's language code.
-     * @property cardsPer1000Words how many cards to ask for per thousand words.
-     */
-    private class Choices(val sourceLang: String, val cardsPer1000Words: Int)
+    /** The book's language code the user chose when generation was started, which a resume repeats. */
+    private var chosenLang = "en"
 
     /**
      * Reads an EPUB in the background and moves to [GenState.Ready], or to [GenState.Failed] if it cannot be read.
@@ -87,18 +81,16 @@ class GenerationManager(
      * @param book the reviewed book.
      * @param selected indexes of the sections to use.
      * @param sourceLang the book's language code.
-     * @param cardsPer1000Words how many cards to ask for per thousand words.
      * @param continuation the deck to add the chapters to, when the rest of a book is added to a deck that was paused; null to
      * create a new deck.
      */
-    fun start(book: EpubBook, selected: Set<Int>, sourceLang: String, cardsPer1000Words: Int, continuation: GenState.Continuation? = null) {
+    fun start(book: EpubBook, selected: Set<Int>, sourceLang: String, continuation: GenState.Continuation? = null) {
         val prefs = settings.prefs.value
         val llm = clientOrReject(prefs) ?: return
-        choices = Choices(sourceLang, cardsPer1000Words)
+        chosenLang = sourceLang
         val options = GenerationOptions(
             selected = selected,
             sourceLang = sourceLang,
-            cardsPer1000Words = cardsPer1000Words,
             onProgress = { done, total, cards, msg ->
                 if (pauseAfterNextSection) stopRequested = true // a section starts: this is the one the pause waits for
                 publish { it.copy(done = done, total = total, cards = cards, message = msg) }
@@ -115,13 +107,13 @@ class GenerationManager(
     }
 
     /**
-     * Does the sections that are left of a paused generation, adding them to the same deck with the choices made at the start.
+     * Does the sections that are left of a paused generation, adding them to the same deck with the language chosen at the start.
      * Nothing happens unless the state is [GenState.Paused].
      */
     fun resume() {
         val paused = _state.value as? GenState.Paused ?: return
         val rest = GenState.Continuation(paused.deckId, paused.remaining)
-        start(paused.book, paused.remaining, choices.sourceLang, choices.cardsPer1000Words, rest)
+        start(paused.book, paused.remaining, chosenLang, rest)
     }
 
     /**
@@ -157,7 +149,7 @@ class GenerationManager(
             val record = stored.record
             if (book == null || record.remaining.isEmpty()) return@launch journal.clear()
             epub = stored.epub
-            choices = Choices(record.sourceLang, record.cardsPer1000Words)
+            chosenLang = record.sourceLang
             _state.compareAndSet(GenState.Idle, GenState.Paused(record.deckId, record.cards, book, record.remaining, record.failed))
         }
     }

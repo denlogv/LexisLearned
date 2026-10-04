@@ -105,8 +105,7 @@ Reply with JSON only, exactly in this shape (field names are fixed):
 
     private const val COMMON_EXCLUSIONS = """- Proper nouns (characters, places), unless the name is also a common word whose meaning the reader needs.
 - Trivially guessable cognates for a {target_language} speaker.
-- Duplicates: one card per lemma, never separate cards for inflected forms. Typos and nonsense.
-If there are more candidates than requested, prefer (1) words that block comprehension, (2) words that recur in the text, (3) idioms and fixed expressions, (4) rarer one-off words."""
+- Duplicates: one card per lemma, never separate cards for inflected forms. Typos and nonsense."""
 
     private const val CARD_WRITING = """HOW TO WRITE A CARD
 - "a": dictionary form in {source_language}: nouns in the singular, verbs in the infinitive (English verbs with "to"), adjectives in the base form; expressions in a reusable form with "sb"/"sth" placeholders.

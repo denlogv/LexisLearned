@@ -84,7 +84,7 @@ fun GenerateBar(estimate: Estimate, sections: Int, prefs: Prefs, onGenerate: () 
         // The bar sits at the screen edge, so it keeps its content clear of the system navigation bar itself.
         Column(Modifier.navigationBarsPadding().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                "${plural(sections, "section")} · ~${plural(estimate.cards, "card")} · ~${estimate.tokensK}k input tokens " +
+                "${plural(sections, "section")} · ~${estimate.tokensK}k input tokens " +
                     "(billed by ${prefs.provider.label} to your key)",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
