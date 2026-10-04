@@ -3,12 +3,15 @@ package dev.denlogv.lexislearned.ui.library
 import dev.denlogv.lexislearned.MainDispatcherRule
 import dev.denlogv.lexislearned.ai.GenState
 import dev.denlogv.lexislearned.ai.GenerationManager
+import dev.denlogv.lexislearned.ai.JobRecord
+import dev.denlogv.lexislearned.ai.MemoryJobStore
 import dev.denlogv.lexislearned.await
 import dev.denlogv.lexislearned.data.DeckLibrary
 import dev.denlogv.lexislearned.data.DeckStorage
 import dev.denlogv.lexislearned.data.memoryDb
 import dev.denlogv.lexislearned.data.testSettings
 import dev.denlogv.lexislearned.format.NativeFormat
+import dev.denlogv.lexislearned.loremEpub
 import dev.denlogv.lexislearned.sampleDeck
 import dev.denlogv.lexislearned.ui.MemoryFiles
 import java.io.ByteArrayOutputStream
@@ -18,6 +21,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -35,7 +39,8 @@ class LibraryViewModelTest {
 
     // Created lazily: a view model must be built after the rule has replaced the main dispatcher.
     private val settings = testSettings()
-    private val generation = GenerationManager(CoroutineScope(Dispatchers.Unconfined), storage, settings)
+    private val store = MemoryJobStore()
+    private val generation = GenerationManager(CoroutineScope(Dispatchers.Unconfined), storage, settings, store)
     private val vm by lazy { LibraryViewModel(library, storage, settings, files, generation) }
 
     private suspend fun next(): String = withTimeout(10_000) { vm.messages.first() }
@@ -83,8 +88,23 @@ class LibraryViewModelTest {
     fun generationProgressIsExposedAndCanBeDismissed() = runBlocking {
         generation.fail("offline")
         assertEquals(GenState.Failed("offline"), vm.generating.value)
-        vm.stopGeneration() // nothing is running, so this changes nothing
+        vm.pauseGenerationAfterSection() // nothing is running or paused, so these change nothing
+        vm.pauseGenerationNow()
+        vm.resumeGeneration()
+        vm.discardGeneration()
         vm.dismissGeneration()
         assertEquals(GenState.Idle, vm.generating.value)
+    }
+
+    @Test
+    fun discardingAPausedGenerationEndsItAndForgetsTheStoredBook() = runBlocking {
+        store.saveBook(loremEpub())
+        store.saveRecord(JobRecord(null, 0, setOf(1), emptyList(), "en", 8))
+        generation.restore()
+        vm.generating.await { it is GenState.Paused }
+        vm.discardGeneration()
+        assertEquals(GenState.Idle, vm.generating.value)
+        withTimeout(10_000) { store.cleared.receive() }
+        assertNull(store.load())
     }
 }

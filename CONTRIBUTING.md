@@ -48,7 +48,7 @@ app/src/main/java/dev/denlogv/lexislearned/
   format/   DeckFormat interface; .lexis (JSON) implementation
   data/     Room database, repository, settings and encrypted API-key storage
   epub/     EPUB reader: table of contents, parts, sections, boilerplate detection
-  ai/       LLM clients (Anthropic, OpenAI and compatible servers), prompts per level, deck generation
+  ai/       LLM clients (Anthropic, OpenAI and compatible servers), prompts per level, deck generation, pausing and resuming
   ui/       Jetpack Compose screens (library, book, part, chapter, study, EPUB, settings)
 detekt-rules/  the project's own detekt rule (documentation completeness) and its tests
 samples/    a demo deck and a tiny original EPUB
@@ -61,6 +61,7 @@ tools/      helper scripts (commit checks, release keystore)
 - **Session logic** lives in `domain/SessionPlanner.kt`. It only knows card ids, so it is easy to test; the study view model in `ui/study/` applies its steps and saves results.
 - **Adding a file format:** implement `DeckFormat` (see `format/NativeFormat.kt`) and add it to `FormatRegistry`.
 - **Database changes** need a Room migration (see `data/Migrations.kt`); progress must survive an update.
+- **Pause and resume:** `GenerationManager` publishes a `GenState`; a run that does not finish every chosen section ends in `Paused`, and `JobJournal` keeps the book and the sections still to do in files (`FileJobStore`) so `restore()` can bring a paused run back on the next launch. Only the user ends a pause (`resume()` or `discard()`).
 - **Prompts** for each level are in `ai/Prompts.kt`. The reply format in the fixed header must stay in sync with the parser in `ai/CardGenerator.kt`.
 - **EPUB structure detection** is heuristic (`epub/EpubStructure.kt`, `epub/EpubReader.kt`). If a book is split badly, a failing test with generic titles and word counts is the most useful report.
 
