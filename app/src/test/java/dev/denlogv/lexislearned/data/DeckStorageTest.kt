@@ -1,6 +1,11 @@
 package dev.denlogv.lexislearned.data
 
+import dev.denlogv.lexislearned.domain.Card
+import dev.denlogv.lexislearned.domain.Chapter
+import dev.denlogv.lexislearned.domain.Deck
 import dev.denlogv.lexislearned.domain.Grade
+import dev.denlogv.lexislearned.domain.PartRef
+import dev.denlogv.lexislearned.domain.Side
 import dev.denlogv.lexislearned.sampleDeck
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -32,6 +37,22 @@ class DeckStorageTest {
     fun close() = db.close()
 
     private suspend fun cardsOf(deckId: Long) = db.cardDao().cards(deckId)
+
+    @Test
+    fun appendedChaptersFollowTheExistingOnesAndShareTheirPart() = runBlocking {
+        fun chapter(n: Int, part: PartRef?) = Chapter("c$n", "Chapter $n", null, listOf(Card("k$n", Side("w$n"), Side("t$n"))), part)
+        val one = PartRef("p1", "One")
+        val two = PartRef("p2", "Two")
+        val id = storage.import(Deck("d", "Book", null, listOf(chapter(1, one)), "en", "ru"))
+        storage.appendChapter(id, chapter(2, one))
+        storage.appendChapter(id, chapter(3, two))
+        storage.appendChapter(id, chapter(4, null))
+        val exported = storage.export(id)
+        assertEquals(listOf("c1", "c2", "c3", "c4"), exported.chapters.map { it.id })
+        assertEquals(listOf(one, one, two, null), exported.chapters.map { it.part })
+        assertEquals(listOf("p1", "p2"), db.structureDao().partsList(id).map { it.sourceId })
+        assertEquals(4, cardsOf(id).size)
+    }
 
     @Test
     fun importThenExportGivesTheSameDeck() = runBlocking {

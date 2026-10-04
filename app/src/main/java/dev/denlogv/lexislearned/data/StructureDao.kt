@@ -54,6 +54,16 @@ interface StructureDao {
     suspend fun partsList(deckId: Long): List<PartEntity>
 
     /**
+     * Finds a part of a deck by its id in the source.
+     *
+     * @param deckId the deck.
+     * @param sourceId the part's id in its source file.
+     * @return the part, or null if the deck has none with that id.
+     */
+    @Query("SELECT * FROM parts WHERE deckId = :deckId AND sourceId = :sourceId LIMIT 1")
+    suspend fun partBySource(deckId: Long, sourceId: String): PartEntity?
+
+    /**
      * Observes one part.
      *
      * @param id the part's database id.

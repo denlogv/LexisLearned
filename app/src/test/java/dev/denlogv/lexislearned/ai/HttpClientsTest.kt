@@ -1,6 +1,12 @@
 package dev.denlogv.lexislearned.ai
 
+import java.util.concurrent.CountDownLatch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
@@ -99,6 +105,23 @@ class HttpClientsTest {
             assertEquals("/chat/completions", seen.path)
             assertEquals("Bearer sk-test", seen.headers["authorization"])
             assertTrue(seen.body.contains("json_object"))
+        }
+    }
+
+    @Test
+    fun cancellingAbandonsARequestThatIsStillWaitingForTheServer() = runBlocking {
+        val received = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        TestServer { _, _ ->
+            received.countDown()
+            release.await()
+            200 to "{}"
+        }.use { server ->
+            val call = launch(Dispatchers.Default) { fast.post(server.url, emptyMap(), buildJsonObject {}) }
+            withContext(Dispatchers.IO) { received.await() }
+            withTimeout(5_000) { call.cancelAndJoin() }
+            assertTrue(call.isCancelled)
+            release.countDown()
         }
     }
 

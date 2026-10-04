@@ -33,6 +33,19 @@ internal class DeckImporter(private val db: AppDatabase) {
     }
 
     /**
+     * Adds a chapter to a deck that is already stored, creating its part if the deck does not have it yet. Used while a deck
+     * is still being generated, so chapters can appear one by one.
+     *
+     * @param deckId the deck's database id.
+     * @param chapter the chapter to add after the existing ones.
+     */
+    suspend fun append(deckId: Long, chapter: Chapter) = db.withTransaction {
+        val partIds = HashMap<String, Long>()
+        chapter.part?.let { part -> structure.partBySource(deckId, part.id)?.let { partIds[part.id] = it.id } }
+        importChapter(deckId, chapter, partIds, emptyMap())
+    }
+
+    /**
      * Deletes an earlier import of the same source deck, remembering its progress.
      *
      * @param sourceId the deck's id in its source file.

@@ -24,8 +24,18 @@ sealed interface GenState {
      * @property total sections to process.
      * @property cards cards collected so far.
      * @property message what is being worked on.
+     * @property title the book's title.
+     * @property deckId the deck in the library once its first chapter is stored, null before that; later chapters are added
+     * to it as they are finished.
      */
-    data class Running(val done: Int, val total: Int, val cards: Int, val message: String) : GenState
+    data class Running(
+        val done: Int,
+        val total: Int,
+        val cards: Int,
+        val message: String,
+        val title: String = "",
+        val deckId: Long? = null,
+    ) : GenState
 
     /**
      * The deck was created and imported.

@@ -2,6 +2,8 @@ package dev.denlogv.lexislearned.ui.library
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.denlogv.lexislearned.ai.GenState
+import dev.denlogv.lexislearned.ai.GenerationManager
 import dev.denlogv.lexislearned.data.DeckLibrary
 import dev.denlogv.lexislearned.data.DeckStorage
 import dev.denlogv.lexislearned.data.Settings
@@ -32,12 +34,14 @@ import kotlinx.coroutines.withContext
  * @param storage imports and exports whole decks.
  * @param settings the user's settings; the number of sessions that completes a word affects the progress shown.
  * @param files reads and writes the files the user picks.
+ * @param generation the "deck from EPUB" job, whose progress is shown above the list.
  */
 class LibraryViewModel(
     private val library: DeckLibrary,
     private val storage: DeckStorage,
     settings: Settings,
     private val files: DeckFiles,
+    private val generation: GenerationManager,
 ) : ViewModel() {
     private val outbox = Channel<String>(Channel.BUFFERED)
 
@@ -48,8 +52,17 @@ class LibraryViewModel(
         .flatMapLatest { library.decks(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
+    /** The state of deck generation, shown as a banner so it stays visible outside the EPUB screen. */
+    val generating: StateFlow<GenState> = generation.state
+
     /** One-off messages for the user, such as the result of an import. */
     val messages: Flow<String> = outbox.receiveAsFlow()
+
+    /** Stops deck generation; chapters that are finished stay in the library. */
+    fun stopGeneration() = generation.cancel()
+
+    /** Dismisses the result of a finished or failed generation. */
+    fun dismissGeneration() = generation.reset()
 
     /**
      * Imports the chosen file as a deck and reports the result.

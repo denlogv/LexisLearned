@@ -150,6 +150,20 @@ class GenerationTest {
     }
 
     @Test
+    fun progressCountsOnlySectionsThatReachedTheDeck() = runBlocking {
+        val llm = ScriptedLlm { system, user ->
+            when {
+                system.startsWith("Reply with JSON only") -> "{}"
+                user.contains("Chapter: \"Two\"") -> "not json" // fails
+                else -> reply("a") // One adds it, Three has nothing new
+            }
+        }
+        val counts = mutableListOf<Int>()
+        CardGenerator(llm, "ru").generate(book, GenerationOptions(onProgress = { done, _, _, _ -> counts += done }))
+        assertEquals(listOf(0, 1, 1, 1), counts) // before One, before Two, before Three, at the end
+    }
+
+    @Test
     fun generatorStopsOnRejectedKey() {
         val llm = ScriptedLlm { system, _ -> if (system.startsWith("Reply")) "{}" else throw LlmException("bad key", 401) }
         assertThrows(LlmException::class.java) { runBlocking { CardGenerator(llm, "ru").generate(book) } }
