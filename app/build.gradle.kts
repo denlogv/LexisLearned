@@ -73,6 +73,9 @@ android {
 
     buildTypes {
         debug {
+            // A separate application id lets a debug build live next to the signed release on one phone, with its own data.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
             enableUnitTestCoverage = true
         }
         release {
