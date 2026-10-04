@@ -61,7 +61,8 @@ Run `./gradlew ktlintFormat` before committing. Do not silence a warning without
 
 - **Line coverage must be at least 80%**, enforced by `jacocoTestCoverageVerification`.
 - The gate measures all code except what cannot run in a JVM unit test: generated code (Room, serialization), Compose screens
-  and theme (`ui/**/*Screen*`, `*Components*`, `Theme*`), `MainActivity`, `LexisLearnedApp` and `KeystoreSecrets` (Android Keystore).
+  and theme (`ui/**/*Screen*`, `*Components*`, `Theme*`), `MainActivity`, `LexisLearnedApp`, `GenerationService` (Android service
+  glue; what it does is decided in the tested `GenerationWatcher`) and `KeystoreSecrets` (Android Keystore).
   Keep those thin (rule 3) so little logic hides there. The exclusion list lives in `app/build.gradle.kts`.
 - Every new or changed function gets tests, including failure paths. A bug fix starts with a failing test.
 - Android APIs (Room, SharedPreferences, `Context`) run under Robolectric; prefer a real in-memory Room database and small fakes over

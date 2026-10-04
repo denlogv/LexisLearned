@@ -144,7 +144,7 @@ detekt {
 
 // ---- Test coverage --------------------------------------------------------------------------------
 // The 80% line-coverage gate (AGENTS.md) covers all code except what cannot run in a JVM unit test:
-// generated code, Compose screens and theme, the Activity and Application classes, and the Keystore-backed
+// generated code, Compose screens and theme, the Activity, Application and Service classes, and the Keystore-backed
 // secret store. UI logic therefore lives in view models and plain functions, which are covered.
 jacoco {
     toolVersion = "0.8.12"
@@ -154,7 +154,7 @@ val coverageExclusions = listOf(
     "**/R.class", "**/R$*.class", "**/BuildConfig.*", "**/Manifest*.*",
     "**/*_Impl*.*", "**/*\$\$serializer.class", "**/ComposableSingletons*.*",
     "**/ui/**/*Screen*.*", "**/ui/**/*Components*.*", "**/ui/**/*Navigation*.*", "**/ui/Theme*.*",
-    "**/MainActivity*.*", "**/LexisLearnedApp*.*", "**/data/KeystoreSecrets*.*",
+    "**/MainActivity*.*", "**/LexisLearnedApp*.*", "**/data/KeystoreSecrets*.*", "**/service/GenerationService*.*",
 )
 val debugClasses = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) { exclude(coverageExclusions) }
 val coverageData = layout.buildDirectory.file("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")

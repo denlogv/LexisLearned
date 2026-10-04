@@ -36,6 +36,9 @@ class GenerationFixture {
     val created = mutableListOf<Triple<Provider, String, String>>()
     private var gated: GatedLlm? = null
 
+    /** How many times the manager asked to be kept alive. */
+    var held = 0
+
     /** The manager under test. */
     val manager = newManager()
 
@@ -44,7 +47,7 @@ class GenerationFixture {
      *
      * @return the new manager, with nothing in memory.
      */
-    fun newManager() = GenerationManager(CoroutineScope(Dispatchers.Unconfined), storage, settings, store) { prefs, key ->
+    fun newManager() = GenerationManager(CoroutineScope(Dispatchers.Unconfined), storage, settings, store, { held++ }) { prefs, key ->
         created += Triple(prefs.provider, key, prefs.model)
         gated ?: ScriptedLlm(answer)
     }

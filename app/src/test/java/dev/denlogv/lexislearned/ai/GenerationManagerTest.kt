@@ -186,6 +186,20 @@ class GenerationManagerTest {
     }
 
     @Test
+    fun theProcessIsKeptAliveForEveryRunButNotForOneThatCannotStart() = runBlocking {
+        val book = fx.ready()
+        fx.manager.start(book, book.defaultSelection, "en", 8) // no key
+        assertEquals(0, fx.held)
+        fx.settings.setApiKey(Provider.ANTHROPIC, "sk-test")
+        fx.answer = { _, user -> if (user.startsWith("Give")) "{}" else throw LlmException("HTTP 500: busy", 500) }
+        fx.manager.start(book, book.defaultSelection, "en", 8)
+        fx.manager.state.await { it is GenState.Paused }
+        fx.manager.resume()
+        fx.manager.state.await { it is GenState.Paused && it.failed.size == 2 }
+        assertEquals(2, fx.held)
+    }
+
+    @Test
     fun failBeforeGenerationShowsTheMessage() {
         fx.manager.fail("Could not read the file")
         assertEquals(GenState.Failed("Could not read the file"), fx.manager.state.value)
