@@ -1,6 +1,7 @@
 package dev.denlogv.lexislearned.ai
 
 import java.io.IOException
+import kotlinx.coroutines.channels.Channel
 
 /**
  * A [JobStore] that keeps the job in memory, for tests of what is stored and when.
@@ -16,6 +17,9 @@ class MemoryJobStore(var failing: Boolean = false) : JobStore {
 
     /** How often a record was written. */
     var recordWrites = 0
+
+    /** Receives a signal each time the job was forgotten, so a test can wait for the journal's background thread. */
+    val cleared = Channel<Unit>(Channel.UNLIMITED)
 
     override fun saveBook(epub: ByteArray) {
         if (failing) throw IOException("disk full")
@@ -37,5 +41,6 @@ class MemoryJobStore(var failing: Boolean = false) : JobStore {
     override fun clear() {
         epub = null
         record = null
+        cleared.trySend(Unit)
     }
 }

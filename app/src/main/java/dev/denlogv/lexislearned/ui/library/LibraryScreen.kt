@@ -34,7 +34,7 @@ import dev.denlogv.lexislearned.ui.appViewModel
  * @param onOpenDeck called with a deck's id when the user opens it.
  * @param onSettings called when the user opens the settings.
  * @param onEpub called when the user wants to create a deck from an EPUB.
- * @param onContinueEpub called when the user wants to add the rest of a book to a deck that was stopped early.
+ * @param onContinueEpub called when the user wants to pick the sections of a paused generation.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,7 +104,7 @@ private fun startExport(
  * @param vm the library view model.
  * @param onOpenDeck called with a deck's id when it is opened.
  * @param onEpub called to open the generation screen.
- * @param onContinueEpub called to open the review for adding the rest of a book to a deck that was stopped early.
+ * @param onContinueEpub called to open the review to pick the sections of a paused generation.
  * @param onExport called when the user exports a deck in a format.
  * @param onAction called when the user asks for an action that needs confirmation.
  * @param modifier layout modifier.
@@ -123,7 +123,17 @@ private fun LibraryBody(
     val generating by vm.generating.collectAsState()
     Column(modifier) {
         generating.toBanner()?.let {
-            GenerationBanner(it, onOpenDeck, onEpub, vm::stopGeneration, onContinueEpub, vm::dismissGeneration)
+            val actions = BannerActions(
+                onOpenDeck,
+                onEpub,
+                vm::pauseGenerationAfterSection,
+                vm::pauseGenerationNow,
+                vm::resumeGeneration,
+                onContinueEpub,
+                vm::discardGeneration,
+                vm::dismissGeneration,
+            )
+            GenerationBanner(it, actions)
         }
         DeckList(decks, onOpenDeck, onExport, onAction, Modifier.weight(1f))
     }

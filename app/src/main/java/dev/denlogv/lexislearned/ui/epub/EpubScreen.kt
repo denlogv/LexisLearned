@@ -23,7 +23,7 @@ import dev.denlogv.lexislearned.ui.library.ContentResolverDeckFiles
 /**
  * The "deck from EPUB" screen: choose a book, review its structure, generate the deck and follow the progress.
  *
- * @param continuing whether the screen is for adding the rest of a book to a deck that was stopped early.
+ * @param continuing whether the screen is for picking the sections of a paused generation.
  * @param onBack called when the back button is pressed.
  * @param onSettings called to open the settings.
  * @param onOpenDeck called with the id of the deck that was created.

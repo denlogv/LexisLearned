@@ -14,6 +14,7 @@ import dev.denlogv.lexislearned.domain.Deck
  * @property onProgress called before each section, and at the end, with (sections whose chapter is in the deck so far, total sections,
  * cards so far, title of the section being worked on). A section that failed or had nothing new is not counted.
  * @property isCancelled polled between sections; when it returns true generation stops and keeps what is done.
+ * @property onSectionDone called after each section was handled, whether it worked or failed, so a caller can save how far the run got.
  * @property onChapter called with each chapter as soon as its cards are ready, together with the deck's details (title,
  * languages, id) and no chapters, so a caller can store the deck while later sections are still being processed.
  */
@@ -26,6 +27,7 @@ data class GenerationOptions(
     val onProgress: (done: Int, total: Int, cardsSoFar: Int, message: String) -> Unit = { _, _, _, _ -> },
     val isCancelled: () -> Boolean = { false },
     val onChapter: suspend (deck: Deck, chapter: Chapter) -> Unit = { _, _ -> },
+    val onSectionDone: suspend () -> Unit = {},
 )
 
 /**

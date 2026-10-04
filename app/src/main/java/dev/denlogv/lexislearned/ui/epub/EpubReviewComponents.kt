@@ -55,7 +55,7 @@ private val LOOSE_INDENT = 8.dp
  * @param level the user's level.
  * @param onChange called with a function that computes new choices from the current ones.
  * @param onLevel called with the level the user picks.
- * @param continuing whether the sections will be added to a deck that was stopped early.
+ * @param continuing whether the sections will be added to the deck of a paused generation.
  * @param onChooseAnother called when the user wants to pick a different book.
  * @param modifier layout modifier.
  */
@@ -86,7 +86,7 @@ fun ReviewList(
 @Composable
 private fun ContinuingNote() {
     Text(
-        "Adding to the deck you started. Sections that are already in it are unticked; the others are selected.",
+        "Continuing the book you started. Sections that are already in the deck are unticked; the others are selected.",
         Modifier.padding(16.dp, 16.dp, 16.dp, 0.dp),
         color = MaterialTheme.colorScheme.primary,
         style = MaterialTheme.typography.bodyMedium,

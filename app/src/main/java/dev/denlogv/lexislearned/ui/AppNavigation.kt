@@ -62,7 +62,7 @@ private fun NavGraphBuilder.libraryRoutes(nav: NavHostController) {
  * @receiver the graph being built.
  * @param nav the controller used to move between screens.
  * @param route where the screen is.
- * @param continuing whether the screen is for adding the rest of a book to a deck that was stopped early.
+ * @param continuing whether the screen is for picking the sections of a paused generation.
  */
 private fun NavGraphBuilder.epubScreen(nav: NavHostController, route: String, continuing: Boolean) {
     composable(route) {

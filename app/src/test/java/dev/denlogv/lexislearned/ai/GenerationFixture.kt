@@ -26,6 +26,9 @@ class GenerationFixture {
     /** Reads the stored decks. */
     val library = DeckLibrary(db)
 
+    /** Where the manager keeps an unfinished generation. */
+    val store = MemoryJobStore()
+
     /** Reply for every request that is not a title request; replace it to change what the model says. */
     var answer: (String, String) -> String = { _, user -> if (user.startsWith("Give")) "{}" else CARDS_REPLY }
 
@@ -34,7 +37,14 @@ class GenerationFixture {
     private var gated: GatedLlm? = null
 
     /** The manager under test. */
-    val manager = GenerationManager(CoroutineScope(Dispatchers.Unconfined), storage, settings) { prefs, key ->
+    val manager = newManager()
+
+    /**
+     * Creates a manager over the same decks, settings and stored job, like the one a restarted app has.
+     *
+     * @return the new manager, with nothing in memory.
+     */
+    fun newManager() = GenerationManager(CoroutineScope(Dispatchers.Unconfined), storage, settings, store) { prefs, key ->
         created += Triple(prefs.provider, key, prefs.model)
         gated ?: ScriptedLlm(answer)
     }

@@ -24,6 +24,14 @@ class GenerationRun internal constructor(
     private val handled = HashSet<Int>()
     private var stored = 0
 
+    @Volatile private var inSection = false
+
+    /**
+     * Whether a section is being handled right now: its request is in flight, or its chapter is being stored and saved. A pause that
+     * waits for the section is meaningful only then; at any other time there is nothing to wait for.
+     */
+    val sectionInFlight: Boolean get() = inSection
+
     /** Descriptions of the sections that failed and were skipped. */
     val failed: List<String> get() = failedSections.toList()
 
@@ -43,17 +51,35 @@ class GenerationRun internal constructor(
         val fetcher = ChapterCardFetcher(llm, systemPrompt)
         for (section in sections) {
             if (options.isCancelled()) return
-            options.onProgress(stored, sections.size, assembler.cardCount, section.title)
-            val wanted = (section.words * options.cardsPer1000Words / 1000).coerceIn(options.minCards, options.maxCards)
-            val reply = fetchOrRecord(fetcher, section, wanted)
-            if (reply != null) handled += section.index
-            val chapter = reply?.let { assembler.add(section, it) }
-            if (chapter != null) {
-                options.onChapter(header, chapter)
-                stored++
+            inSection = true
+            try {
+                handle(fetcher, section, options)
+            } finally {
+                inSection = false
             }
         }
         options.onProgress(stored, sections.size, assembler.cardCount, "Done")
+    }
+
+    /**
+     * Fetches one section's cards and, if there are new ones, stores them as a chapter.
+     *
+     * @param fetcher asks the model for the cards.
+     * @param section the section.
+     * @param options card counts, progress and per-chapter callbacks.
+     * @throws LlmException if the provider rejects the API key.
+     */
+    private suspend fun handle(fetcher: ChapterCardFetcher, section: EpubChapter, options: GenerationOptions) {
+        options.onProgress(stored, sections.size, assembler.cardCount, section.title)
+        val wanted = (section.words * options.cardsPer1000Words / 1000).coerceIn(options.minCards, options.maxCards)
+        val reply = fetchOrRecord(fetcher, section, wanted)
+        if (reply != null) handled += section.index
+        val chapter = reply?.let { assembler.add(section, it) }
+        if (chapter != null) {
+            options.onChapter(header, chapter)
+            stored++
+        }
+        options.onSectionDone()
     }
 
     /**
