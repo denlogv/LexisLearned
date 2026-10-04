@@ -37,7 +37,7 @@ import dev.denlogv.lexislearned.ui.appViewModel
 @Composable
 fun LibraryScreen(onOpenDeck: (Long) -> Unit, onSettings: () -> Unit, onEpub: () -> Unit) {
     val context = LocalContext.current
-    val vm = appViewModel { app, _ -> LibraryViewModel(app.repository, app.settings, ContentResolverDeckFiles(context)) }
+    val vm = appViewModel { app, _ -> LibraryViewModel(app.library, app.storage, app.settings, ContentResolverDeckFiles(context)) }
     val decks by vm.decks.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     var pending by remember { mutableStateOf<DeckAction?>(null) }

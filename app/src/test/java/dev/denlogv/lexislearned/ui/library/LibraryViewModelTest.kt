@@ -2,7 +2,8 @@ package dev.denlogv.lexislearned.ui.library
 
 import dev.denlogv.lexislearned.MainDispatcherRule
 import dev.denlogv.lexislearned.await
-import dev.denlogv.lexislearned.data.DeckRepository
+import dev.denlogv.lexislearned.data.DeckLibrary
+import dev.denlogv.lexislearned.data.DeckStorage
 import dev.denlogv.lexislearned.data.memoryDb
 import dev.denlogv.lexislearned.data.testSettings
 import dev.denlogv.lexislearned.format.NativeFormat
@@ -24,10 +25,12 @@ class LibraryViewModelTest {
     @get:Rule val main = MainDispatcherRule()
 
     private val files = MemoryFiles()
-    private val repo = DeckRepository(memoryDb())
+    private val db = memoryDb()
+    private val library = DeckLibrary(db)
+    private val storage = DeckStorage(db)
 
     // Created lazily: a view model must be built after the rule has replaced the main dispatcher.
-    private val vm by lazy { LibraryViewModel(repo, testSettings(), files) }
+    private val vm by lazy { LibraryViewModel(library, storage, testSettings(), files) }
 
     private suspend fun next(): String = withTimeout(10_000) { vm.messages.first() }
 
@@ -53,7 +56,7 @@ class LibraryViewModelTest {
 
     @Test
     fun exportWritesTheDeck() = runBlocking {
-        val id = repo.import(sampleDeck())
+        val id = storage.import(sampleDeck())
         vm.export("out.lexis", id, NativeFormat)
         assertEquals("Exported 12 cards", next())
         assertTrue(String(files.files.getValue("out.lexis")).contains("Lorem"))
@@ -61,7 +64,7 @@ class LibraryViewModelTest {
 
     @Test
     fun resetAndDeleteChangeTheLibrary() = runBlocking {
-        val id = repo.import(sampleDeck())
+        val id = storage.import(sampleDeck())
         vm.reset(id)
         assertEquals("Progress reset", next())
         vm.decks.await { !it.isNullOrEmpty() }

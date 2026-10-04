@@ -2,7 +2,8 @@ package dev.denlogv.lexislearned.ai
 
 import dev.denlogv.lexislearned.MainDispatcherRule
 import dev.denlogv.lexislearned.await
-import dev.denlogv.lexislearned.data.DeckRepository
+import dev.denlogv.lexislearned.data.DeckLibrary
+import dev.denlogv.lexislearned.data.DeckStorage
 import dev.denlogv.lexislearned.data.Provider
 import dev.denlogv.lexislearned.data.memoryDb
 import dev.denlogv.lexislearned.data.testSettings
@@ -23,10 +24,12 @@ class GenerationManagerTest {
     @get:Rule val main = MainDispatcherRule()
 
     private val settings = testSettings()
-    private val repo = DeckRepository(memoryDb())
+    private val db = memoryDb()
+    private val storage = DeckStorage(db)
+    private val library = DeckLibrary(db)
     private var answer: (String, String) -> String = { _, user -> if (user.startsWith("Give")) "{}" else cardsReply }
     private val created = mutableListOf<Triple<Provider, String, String>>()
-    private val manager = GenerationManager(CoroutineScope(Dispatchers.Unconfined), repo, settings) { provider, key, model ->
+    private val manager = GenerationManager(CoroutineScope(Dispatchers.Unconfined), storage, settings) { provider, key, model ->
         created += Triple(provider, key, model)
         ScriptedLlm(answer)
     }
@@ -65,7 +68,7 @@ class GenerationManagerTest {
         val done = manager.state.await { it is GenState.Finished } as GenState.Finished
         assertEquals(2, done.cards) // the second chapter repeats the first one's words, which are dropped
         assertTrue(done.failed.isEmpty())
-        assertEquals(1, repo.decks(1).first().size)
+        assertEquals(1, library.decks(1).first().size)
         assertEquals(Triple(Provider.ANTHROPIC, "sk-test", Provider.ANTHROPIC.defaultModel), created.single())
         manager.reset()
         assertEquals(GenState.Idle, manager.state.value)

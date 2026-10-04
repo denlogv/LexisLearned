@@ -1,113 +1,24 @@
 package dev.denlogv.lexislearned.data
 
-import dev.denlogv.lexislearned.domain.Deck
 import dev.denlogv.lexislearned.domain.Grade
 import dev.denlogv.lexislearned.domain.Scheduler
 import dev.denlogv.lexislearned.domain.SessionGrading
 import dev.denlogv.lexislearned.domain.Sm2Scheduler
-import kotlinx.coroutines.flow.Flow
 
 /**
- * The app's window onto stored decks: browsing, choosing words for a session, saving progress, resetting, importing and
- * exporting.
+ * What a study session needs from the database: choosing its words, finding wrong answers and filler words, and saving the
+ * result of a finished session.
  *
  * @param db the database.
  * @param scheduler decides when a word is due after a session.
  * @param clock the current time in epoch milliseconds; tests replace it.
  */
-class DeckRepository(
+class StudyRepository(
     db: AppDatabase,
     private val scheduler: Scheduler = Sm2Scheduler,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
-    private val structure = db.structureDao()
-    private val summaries = db.summaryDao()
     private val cards = db.cardDao()
-    private val importer = DeckImporter(db)
-    private val exporter = DeckExporter(db)
-
-    /**
-     * Observes all decks with their progress.
-     *
-     * @param needed the number of sessions that completes a word.
-     * @return a flow of the decks ordered by title.
-     */
-    fun decks(needed: Int): Flow<List<DeckSummary>> = summaries.deckSummaries(clock(), needed)
-
-    /**
-     * Observes the chapters of a deck with their progress.
-     *
-     * @param deckId the deck.
-     * @param needed the number of sessions that completes a word.
-     * @return a flow of the chapters in reading order.
-     */
-    fun chapters(deckId: Long, needed: Int): Flow<List<ChapterSummary>> = summaries.chapterSummaries(deckId, clock(), needed)
-
-    /**
-     * Observes one chapter's summary.
-     *
-     * @param id the chapter.
-     * @param needed the number of sessions that completes a word.
-     * @return a flow of the chapter with its progress, or null if it does not exist.
-     */
-    fun chapterSummary(id: Long, needed: Int): Flow<ChapterSummary?> = summaries.chapterSummary(id, clock(), needed)
-
-    /**
-     * Observes one chapter.
-     *
-     * @param id the chapter.
-     * @return a flow of the chapter, or null if it does not exist.
-     */
-    fun chapter(id: Long): Flow<ChapterEntity?> = structure.chapterFlow(id)
-
-    /**
-     * Observes the cards of a chapter.
-     *
-     * @param id the chapter.
-     * @return a flow of the cards in reading order.
-     */
-    fun cardsOfChapter(id: Long): Flow<List<CardEntity>> = cards.cardsOfChapter(id)
-
-    /**
-     * Observes the parts of a deck.
-     *
-     * @param deckId the deck.
-     * @return a flow of the parts in order.
-     */
-    fun parts(deckId: Long): Flow<List<PartEntity>> = structure.parts(deckId)
-
-    /**
-     * Observes one part.
-     *
-     * @param id the part.
-     * @return a flow of the part, or null if it does not exist.
-     */
-    fun part(id: Long): Flow<PartEntity?> = structure.partFlow(id)
-
-    /**
-     * Observes one deck.
-     *
-     * @param deckId the deck.
-     * @return a flow of the deck, or null if it does not exist.
-     */
-    fun deck(deckId: Long): Flow<DeckEntity?> = structure.deckFlow(deckId)
-
-    /**
-     * Imports a deck; re-importing the same source deck replaces it but keeps study progress.
-     *
-     * @param deck the deck to store.
-     * @return the database id of the stored deck.
-     */
-    suspend fun import(deck: Deck): Long = importer.import(deck)
-
-    /**
-     * Loads a deck as a domain object, including progress.
-     *
-     * @param deckId the deck.
-     * @return the deck.
-     * @throws IllegalStateException if there is no such deck.
-     */
-    suspend fun export(deckId: Long): Deck = exporter.export(deckId)
 
     /**
      * Chooses the words for a session: due words first, then new ones.
@@ -177,41 +88,6 @@ class DeckRepository(
             sessionsDone = sessions,
         )
     }
-
-    /**
-     * Makes a word new again.
-     *
-     * @param id the card.
-     */
-    suspend fun resetCard(id: Long) = cards.resetCard(id)
-
-    /**
-     * Makes every word of a chapter new again.
-     *
-     * @param id the chapter.
-     */
-    suspend fun resetChapter(id: Long) = cards.resetChapter(id)
-
-    /**
-     * Makes every word of a part new again.
-     *
-     * @param id the part.
-     */
-    suspend fun resetPart(id: Long) = cards.resetPart(id)
-
-    /**
-     * Makes every word of a deck new again.
-     *
-     * @param deckId the deck.
-     */
-    suspend fun resetProgress(deckId: Long) = cards.resetDeck(deckId)
-
-    /**
-     * Deletes a deck with everything in it.
-     *
-     * @param deckId the deck.
-     */
-    suspend fun delete(deckId: Long) = structure.deleteDeck(deckId)
 
     private companion object {
         /** Passed to queries to mean "do not filter". */

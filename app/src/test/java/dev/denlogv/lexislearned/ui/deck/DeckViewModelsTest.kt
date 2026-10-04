@@ -2,7 +2,9 @@ package dev.denlogv.lexislearned.ui.deck
 
 import dev.denlogv.lexislearned.MainDispatcherRule
 import dev.denlogv.lexislearned.await
-import dev.denlogv.lexislearned.data.DeckRepository
+import dev.denlogv.lexislearned.data.DeckLibrary
+import dev.denlogv.lexislearned.data.DeckStorage
+import dev.denlogv.lexislearned.data.StudyRepository
 import dev.denlogv.lexislearned.data.memoryDb
 import dev.denlogv.lexislearned.data.testSettings
 import dev.denlogv.lexislearned.domain.Direction
@@ -23,24 +25,26 @@ class DeckViewModelsTest {
     @get:Rule val main = MainDispatcherRule()
 
     private val db = memoryDb()
-    private val repo = DeckRepository(db)
+    private val library = DeckLibrary(db)
+    private val storage = DeckStorage(db)
+    private val study = StudyRepository(db)
     private val settings = testSettings()
 
     private suspend fun importParted(): Long {
         val part = PartRef("p", "Part")
         val deck = sampleDeck().let { d -> d.copy(chapters = d.chapters.mapIndexed { i, c -> if (i > 0) c.copy(part = part) else c }) }
-        return repo.import(deck)
+        return storage.import(deck)
     }
 
     @Test
     fun bookScreenListsEntriesAndResets() = runBlocking {
         val id = importParted()
-        val vm = DeckViewModel(repo, settings, id)
+        val vm = DeckViewModel(library, settings, id)
         assertEquals("Lorem", vm.deck.await { it != null }?.title)
         val entries = vm.entries.await { it.size == 2 }
         assertEquals(listOf(true, true), listOf(entries[0] is DeckEntry.ChapterRow, entries[1] is DeckEntry.PartRow))
         assertEquals(3, vm.chapters.await { it.size == 3 }.size)
-        repo.finishSession(db.cardDao().cards(id).first(), Grade.GOOD, true)
+        study.finishSession(db.cardDao().cards(id).first(), Grade.GOOD, true)
         vm.resetBook().join()
         assertEquals(0, db.cardDao().cards(id).count { it.sessionsDone > 0 })
     }
@@ -49,11 +53,11 @@ class DeckViewModelsTest {
     fun partScreenShowsOnlyItsChapters() = runBlocking {
         val id = importParted()
         val partId = db.structureDao().partsList(id).single().id
-        val vm = PartViewModel(repo, settings, partId)
+        val vm = PartViewModel(library, settings, partId)
         assertEquals("Part", vm.part.await { it != null }?.title)
         assertEquals("Lorem", vm.deck.await { it != null }?.title)
         assertEquals(2, vm.chapters.await { it.isNotEmpty() }.size)
-        repo.finishSession(db.cardDao().cards(id).last(), Grade.GOOD, true)
+        study.finishSession(db.cardDao().cards(id).last(), Grade.GOOD, true)
         vm.resetPart().join()
         assertEquals(0, db.cardDao().cards(id).count { it.sessionsDone > 0 })
     }
@@ -62,13 +66,13 @@ class DeckViewModelsTest {
     fun chapterScreenShowsCardsAndResetsOne() = runBlocking {
         val id = importParted()
         val chapterId = db.structureDao().chapters(id).first().id
-        val vm = ChapterViewModel(repo, settings, chapterId)
+        val vm = ChapterViewModel(library, settings, chapterId)
         assertEquals("Chapter 1", vm.chapter.await { it != null }?.title)
         assertEquals("Lorem", vm.deck.await { it != null }?.title)
         assertEquals(4, vm.summary.await { it != null }?.total)
         val cards = vm.cards.await { it.size == 4 }
-        repo.finishSession(cards[0], Grade.GOOD, true)
-        repo.finishSession(cards[1], Grade.GOOD, true)
+        study.finishSession(cards[0], Grade.GOOD, true)
+        study.finishSession(cards[1], Grade.GOOD, true)
         vm.resetCard(cards[0].id).join()
         assertEquals(1, db.cardDao().cards(id).count { it.sessionsDone > 0 })
         vm.resetChapter().join()
@@ -77,7 +81,7 @@ class DeckViewModelsTest {
 
     @Test
     fun studyOptionsGoThroughTheSettings() {
-        val vm = ChapterViewModel(repo, settings, 1)
+        val vm = ChapterViewModel(library, settings, 1)
         vm.setDirection(Direction.REVERSE)
         vm.toggleMode(StudyMode.TYPE)
         assertEquals(Direction.REVERSE, vm.prefs.value.direction)

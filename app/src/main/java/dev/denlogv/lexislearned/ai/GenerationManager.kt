@@ -1,6 +1,6 @@
 package dev.denlogv.lexislearned.ai
 
-import dev.denlogv.lexislearned.data.DeckRepository
+import dev.denlogv.lexislearned.data.DeckStorage
 import dev.denlogv.lexislearned.data.Prefs
 import dev.denlogv.lexislearned.data.Provider
 import dev.denlogv.lexislearned.data.Settings
@@ -24,13 +24,13 @@ typealias ClientFactory = (Provider, String, String) -> LlmClient
  * Runs "EPUB to deck" in the application scope so it survives screen changes, and publishes its progress as [GenState].
  *
  * @param scope where background work runs.
- * @param repository where finished decks are imported.
+ * @param storage where finished decks are imported.
  * @param settings provider, key, level and prompt settings.
  * @param clientFactory creates the LLM client; tests replace it with a fake.
  */
 class GenerationManager(
     private val scope: CoroutineScope,
-    private val repository: DeckRepository,
+    private val storage: DeckStorage,
     private val settings: Settings,
     private val clientFactory: ClientFactory = ::defaultClient,
 ) {
@@ -126,7 +126,7 @@ class GenerationManager(
         if (result.deck.chapters.isEmpty()) {
             GenState.Failed(result.failedChapters.firstOrNull() ?: "No cards were generated.", book)
         } else {
-            GenState.Finished(repository.import(result.deck), result.deck.cardCount, result.failedChapters)
+            GenState.Finished(storage.import(result.deck), result.deck.cardCount, result.failedChapters)
         }
     } catch (e: CancellationException) {
         throw e

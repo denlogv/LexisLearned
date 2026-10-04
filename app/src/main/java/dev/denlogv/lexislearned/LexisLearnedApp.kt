@@ -5,9 +5,11 @@ import android.content.Context
 import androidx.room.Room
 import dev.denlogv.lexislearned.ai.GenerationManager
 import dev.denlogv.lexislearned.data.AppDatabase
-import dev.denlogv.lexislearned.data.DeckRepository
+import dev.denlogv.lexislearned.data.DeckLibrary
+import dev.denlogv.lexislearned.data.DeckStorage
 import dev.denlogv.lexislearned.data.Migrations
 import dev.denlogv.lexislearned.data.Settings
+import dev.denlogv.lexislearned.data.StudyRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -21,8 +23,16 @@ class LexisLearnedApp : Application() {
     lateinit var settings: Settings
         private set
 
-    /** Access to stored decks. */
-    lateinit var repository: DeckRepository
+    /** The stored decks, to browse and manage. */
+    lateinit var library: DeckLibrary
+        private set
+
+    /** What study sessions read and write. */
+    lateinit var study: StudyRepository
+        private set
+
+    /** Importing and exporting whole decks. */
+    lateinit var storage: DeckStorage
         private set
 
     /** Creates decks from EPUBs. */
@@ -37,7 +47,9 @@ class LexisLearnedApp : Application() {
         val db = Room.databaseBuilder(this, AppDatabase::class.java, "lexislearned.db")
             .addMigrations(*Migrations.ALL)
             .build()
-        repository = DeckRepository(db)
-        generation = GenerationManager(appScope, repository, settings)
+        library = DeckLibrary(db)
+        study = StudyRepository(db)
+        storage = DeckStorage(db)
+        generation = GenerationManager(appScope, storage, settings)
     }
 }

@@ -5,7 +5,7 @@ import dev.denlogv.lexislearned.ai.GenState
 import dev.denlogv.lexislearned.ai.GenerationManager
 import dev.denlogv.lexislearned.ai.ScriptedLlm
 import dev.denlogv.lexislearned.await
-import dev.denlogv.lexislearned.data.DeckRepository
+import dev.denlogv.lexislearned.data.DeckStorage
 import dev.denlogv.lexislearned.data.Provider
 import dev.denlogv.lexislearned.data.memoryDb
 import dev.denlogv.lexislearned.data.testSettings
@@ -28,7 +28,7 @@ class EpubViewModelTest {
 
     private val settings = testSettings()
     private val files = MemoryFiles()
-    private val generation = GenerationManager(CoroutineScope(Dispatchers.Unconfined), DeckRepository(memoryDb()), settings) { _, _, _ ->
+    private val generation = GenerationManager(CoroutineScope(Dispatchers.Unconfined), DeckStorage(memoryDb()), settings) { _, _, _ ->
         ScriptedLlm { _, user ->
             if (user.startsWith("Give")) "{}" else """{"cards":[{"a":"alpha","b":"альфа"}]}"""
         }

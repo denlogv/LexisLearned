@@ -34,7 +34,7 @@ import dev.denlogv.lexislearned.ui.studyButtonLabel
  */
 @Composable
 fun ChapterScreen(onBack: () -> Unit, onStudy: (Long, Long, Long) -> Unit) {
-    val vm = appViewModel { app, handle -> ChapterViewModel(app.repository, app.settings, handle["chapterId"]!!) }
+    val vm = appViewModel { app, handle -> ChapterViewModel(app.library, app.settings, handle["chapterId"]!!) }
     val chapter by vm.chapter.collectAsState()
     val deck by vm.deck.collectAsState()
     val summary by vm.summary.collectAsState()

@@ -2,7 +2,8 @@ package dev.denlogv.lexislearned.ui.library
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dev.denlogv.lexislearned.data.DeckRepository
+import dev.denlogv.lexislearned.data.DeckLibrary
+import dev.denlogv.lexislearned.data.DeckStorage
 import dev.denlogv.lexislearned.data.Settings
 import dev.denlogv.lexislearned.format.DeckFormat
 import dev.denlogv.lexislearned.format.FormatException
@@ -27,18 +28,24 @@ import kotlinx.coroutines.withContext
 /**
  * The state and actions of the library screen: the list of decks, importing, exporting, resetting and deleting.
  *
- * @param repo access to stored decks.
+ * @param library the stored decks.
+ * @param storage imports and exports whole decks.
  * @param settings the user's settings; the number of sessions that completes a word affects the progress shown.
  * @param files reads and writes the files the user picks.
  */
-class LibraryViewModel(private val repo: DeckRepository, settings: Settings, private val files: DeckFiles) : ViewModel() {
+class LibraryViewModel(
+    private val library: DeckLibrary,
+    private val storage: DeckStorage,
+    settings: Settings,
+    private val files: DeckFiles,
+) : ViewModel() {
     private val outbox = Channel<String>(Channel.BUFFERED)
 
     /** All decks with their progress; null until the first load. */
     @OptIn(ExperimentalCoroutinesApi::class)
     val decks: StateFlow<List<dev.denlogv.lexislearned.data.DeckSummary>?> = settings.prefs.map { it.sessionsToComplete }
         .distinctUntilChanged()
-        .flatMapLatest { repo.decks(it) }
+        .flatMapLatest { library.decks(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     /** One-off messages for the user, such as the result of an import. */
@@ -55,7 +62,7 @@ class LibraryViewModel(private val repo: DeckRepository, settings: Settings, pri
             try {
                 val file = files.read(uri)
                 val deck = withContext(Dispatchers.Default) { FormatRegistry.read(file.name, file.bytes) }
-                repo.import(deck)
+                storage.import(deck)
                 "Imported “${deck.title}” (${plural(deck.cardCount, "card")})"
             } catch (e: FormatException) {
                 "Import failed: ${e.message}"
@@ -76,7 +83,7 @@ class LibraryViewModel(private val repo: DeckRepository, settings: Settings, pri
     fun export(uri: String, deckId: Long, format: DeckFormat): Job = viewModelScope.launch {
         outbox.send(
             try {
-                val deck = repo.export(deckId)
+                val deck = storage.export(deckId)
                 files.write(uri) { format.write(deck, it) }
                 "Exported ${plural(deck.cardCount, "card")}"
             } catch (e: FormatException) {
@@ -94,7 +101,7 @@ class LibraryViewModel(private val repo: DeckRepository, settings: Settings, pri
      * @return the running job.
      */
     fun reset(id: Long): Job = viewModelScope.launch {
-        repo.resetProgress(id)
+        library.resetProgress(id)
         outbox.send("Progress reset")
     }
 
@@ -104,7 +111,7 @@ class LibraryViewModel(private val repo: DeckRepository, settings: Settings, pri
      * @param id the deck.
      * @return the running job.
      */
-    fun delete(id: Long): Job = viewModelScope.launch { repo.delete(id) }
+    fun delete(id: Long): Job = viewModelScope.launch { library.delete(id) }
 
     private companion object {
         /** How long the deck list stays active after the last screen stops watching it. */

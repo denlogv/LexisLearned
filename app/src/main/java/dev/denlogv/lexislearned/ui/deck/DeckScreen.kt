@@ -22,7 +22,7 @@ import dev.denlogv.lexislearned.ui.studyButtonLabel
  */
 @Composable
 fun DeckScreen(onBack: () -> Unit, onStudy: (Long, Long, Long) -> Unit, onChapter: (Long) -> Unit, onPart: (Long) -> Unit) {
-    val vm = appViewModel { app, handle -> DeckViewModel(app.repository, app.settings, handle["deckId"]!!) }
+    val vm = appViewModel { app, handle -> DeckViewModel(app.library, app.settings, handle["deckId"]!!) }
     val deck by vm.deck.collectAsState()
     val chapters by vm.chapters.collectAsState()
     val entries by vm.entries.collectAsState()

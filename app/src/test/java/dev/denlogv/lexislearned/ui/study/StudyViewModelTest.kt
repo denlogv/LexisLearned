@@ -3,8 +3,9 @@ package dev.denlogv.lexislearned.ui.study
 import androidx.lifecycle.SavedStateHandle
 import dev.denlogv.lexislearned.MainDispatcherRule
 import dev.denlogv.lexislearned.await
-import dev.denlogv.lexislearned.data.DeckRepository
+import dev.denlogv.lexislearned.data.DeckStorage
 import dev.denlogv.lexislearned.data.Settings
+import dev.denlogv.lexislearned.data.StudyRepository
 import dev.denlogv.lexislearned.data.memoryDb
 import dev.denlogv.lexislearned.data.testSettings
 import dev.denlogv.lexislearned.domain.Direction
@@ -25,13 +26,14 @@ class StudyViewModelTest {
     @get:Rule val main = MainDispatcherRule()
 
     private val db = memoryDb()
-    private val repo = DeckRepository(db)
+    private val storage = DeckStorage(db)
+    private val study = StudyRepository(db)
     private val settings: Settings = testSettings().also { it.setSessionSize(4) }
 
     private suspend fun start(chapterId: Long = -1): StudyViewModel {
-        val deckId = repo.import(sampleDeck())
+        val deckId = storage.import(sampleDeck())
         val handle = SavedStateHandle(mapOf("deckId" to deckId, "chapterId" to chapterId, "partId" to -1L))
-        return StudyViewModel(repo, settings, handle, Random(3)).also { vm -> vm.ui.await { !it.loading && it.current.isNotEmpty() } }
+        return StudyViewModel(study, settings, handle, Random(3)).also { vm -> vm.ui.await { !it.loading && it.current.isNotEmpty() } }
     }
 
     /** Answers the current step the way a perfect learner would and waits until the next one is shown. */
@@ -101,7 +103,7 @@ class StudyViewModelTest {
     @Test
     fun emptyLibraryMeansNothingToStudy() = runBlocking {
         val handle = SavedStateHandle(mapOf("deckId" to 77L, "chapterId" to -1L, "partId" to -1L))
-        val vm = StudyViewModel(repo, settings, handle, Random(1))
+        val vm = StudyViewModel(study, settings, handle, Random(1))
         val ui = vm.ui.await { it.finished }
         assertEquals(0, ui.totalWords)
         vm.answer(Grade.GOOD)
@@ -113,10 +115,10 @@ class StudyViewModelTest {
 
     @Test
     fun aChapterSessionOnlyUsesThatChapter() = runBlocking {
-        val deckId = repo.import(sampleDeck())
+        val deckId = storage.import(sampleDeck())
         val chapter = db.structureDao().chapters(deckId)[1].id
         val handle = SavedStateHandle(mapOf("deckId" to deckId, "chapterId" to chapter, "partId" to -1L))
-        val vm = StudyViewModel(repo, settings, handle, Random(3))
+        val vm = StudyViewModel(study, settings, handle, Random(3))
         assertEquals(4, vm.ui.await { !it.loading }.totalWords)
     }
 }
