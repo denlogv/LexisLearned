@@ -13,13 +13,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.denlogv.lexislearned.ai.GenState
 import dev.denlogv.lexislearned.data.Prefs
 import dev.denlogv.lexislearned.ui.AppProgress
+import dev.denlogv.lexislearned.ui.headline
+import dev.denlogv.lexislearned.ui.pauseLabel
 import dev.denlogv.lexislearned.ui.plural
+import dev.denlogv.lexislearned.ui.resumeLabel
+import dev.denlogv.lexislearned.ui.summary
 
 /**
  * What the screen shows when there is no book to review: the start, reading, running, finished and failed stages.
@@ -44,9 +49,10 @@ fun StatusPanel(
         when (state) {
             GenState.Idle -> IdlePanel(prefs, onChoose)
             GenState.Loading -> CircularProgressIndicator()
-            is GenState.Running -> RunningPanel(state, vm::cancel, onOpenDeck)
-            is GenState.Finished -> FinishedPanel(state, onOpenDeck, vm::continueGeneration)
-            is GenState.Failed -> FailedPanel(state, vm::restart, onSettings)
+            is GenState.Running -> RunningPanel(state, vm::pause, onOpenDeck)
+            is GenState.Paused -> PausedPanel(state, PausedActions(vm::resume, vm::chooseSections, vm::discard, onSettings, onOpenDeck))
+            is GenState.Finished -> FinishedPanel(state, onOpenDeck)
+            is GenState.Failed -> FailedPanel(state, vm::backToReview, vm::restart, onSettings)
             is GenState.Ready -> Unit
         }
     }
@@ -72,20 +78,61 @@ private fun IdlePanel(prefs: Prefs, onChoose: () -> Unit) {
  * Progress while cards are generated. The deck is already in the library once its first chapter is done, and grows from there.
  *
  * @param state the progress.
- * @param onStop called when the user stops early.
+ * @param onPause called when the user pauses.
  * @param onOpenDeck called with the id of the deck as far as it is generated.
  */
 @Composable
-private fun RunningPanel(state: GenState.Running, onStop: () -> Unit, onOpenDeck: (Long) -> Unit) {
+private fun RunningPanel(state: GenState.Running, onPause: () -> Unit, onOpenDeck: (Long) -> Unit) {
     AppProgress(if (state.total == 0) 0f else state.done / state.total.toFloat(), Modifier.fillMaxWidth())
-    Text("${state.done} / ${plural(state.total, "section")} · ${plural(state.cards, "card")} so far")
+    Text(state.summary())
     Text(state.message, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Text(
-        "Chapters appear in your library as soon as they are ready. You can leave this screen; progress is shown in the library.",
+        "Chapters appear in your library as soon as they are ready. You can leave this screen; progress is shown in the library. " +
+            "Pausing waits for the section in progress, which is paid for already.",
         style = MaterialTheme.typography.bodySmall,
     )
     state.deckId?.let { Button({ onOpenDeck(it) }) { Text("Open deck so far") } }
-    OutlinedButton(onStop) { Text("Stop and keep what's done") }
+    OutlinedButton(onPause) { Text(state.pauseLabel()) }
+}
+
+/**
+ * What the user can do with a paused generation.
+ *
+ * @property onResume does the sections that are left.
+ * @property onChooseSections opens the review to pick the sections.
+ * @property onDiscard gives up on the sections that are left.
+ * @property onSettings opens the settings.
+ * @property onOpenDeck opens the deck with the id given.
+ */
+class PausedActions(
+    val onResume: () -> Unit,
+    val onChooseSections: () -> Unit,
+    val onDiscard: () -> Unit,
+    val onSettings: () -> Unit,
+    val onOpenDeck: (Long) -> Unit,
+)
+
+/**
+ * A generation that is paused, stopped by a problem or was interrupted by the app closing: what is done, what is left and how to go on.
+ * It stays like this, also after the app is restarted, until the user resumes or discards it.
+ *
+ * @param state the paused generation.
+ * @param actions what the buttons do.
+ */
+@Composable
+private fun PausedPanel(state: GenState.Paused, actions: PausedActions) {
+    Text(state.headline(), style = MaterialTheme.typography.titleMedium)
+    Text("“${state.book.title}” · ${state.summary()}")
+    state.failed.take(MAX_LISTED_FAILURES).forEach { Text("• $it", color = MaterialTheme.colorScheme.error) }
+    Text(
+        "The chapters that are done are in your library and are not generated or paid for again.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    Button(actions.onResume) { Text(state.resumeLabel()) }
+    state.deckId?.let { OutlinedButton({ actions.onOpenDeck(it) }) { Text("Open deck so far") } }
+    OutlinedButton(actions.onChooseSections) { Text("Choose sections…") }
+    if (state.failed.isNotEmpty()) OutlinedButton(actions.onSettings) { Text("Open settings") }
+    TextButton(actions.onDiscard) { Text("Discard the rest") }
 }
 
 /**
@@ -93,17 +140,10 @@ private fun RunningPanel(state: GenState.Running, onStop: () -> Unit, onOpenDeck
  *
  * @param state the result.
  * @param onOpenDeck called with the new deck's id.
- * @param onContinue called when the user wants to add the missing sections to the deck.
  */
 @Composable
-private fun FinishedPanel(state: GenState.Finished, onOpenDeck: (Long) -> Unit, onContinue: () -> Unit) {
+private fun FinishedPanel(state: GenState.Finished, onOpenDeck: (Long) -> Unit) {
     Text("Created a deck with ${plural(state.cards, "card")}.", style = MaterialTheme.typography.titleMedium)
-    if (state.unfinished.isNotEmpty()) Text("Not in the deck yet: ${plural(state.unfinished.size, "section")}.")
-    if (state.failed.isNotEmpty()) {
-        Text("${state.failed.size} section(s) failed and were skipped:", color = MaterialTheme.colorScheme.error)
-        state.failed.take(MAX_LISTED_FAILURES).forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
-    }
-    if (state.book != null && state.unfinished.isNotEmpty()) Button(onContinue) { Text("Continue with the rest") }
     Button({ onOpenDeck(state.deckId) }) { Text("Open deck") }
 }
 
@@ -114,13 +154,15 @@ private const val MAX_LISTED_FAILURES = 5
  * An error with ways to recover.
  *
  * @param state the error.
- * @param onRetry called to go back to choosing a file.
+ * @param onBackToReview called to go back to the review of the book, when there is one.
+ * @param onChooseAnother called to go back to choosing a file.
  * @param onSettings called to open the settings.
  */
 @Composable
-private fun FailedPanel(state: GenState.Failed, onRetry: () -> Unit, onSettings: () -> Unit) {
+private fun FailedPanel(state: GenState.Failed, onBackToReview: () -> Unit, onChooseAnother: () -> Unit, onSettings: () -> Unit) {
     Text(state.message, color = MaterialTheme.colorScheme.error)
-    Button(onRetry) { Text("Try again") }
+    if (state.book != null) Button(onBackToReview) { Text("Back to the book") }
+    OutlinedButton(onChooseAnother) { Text(if (state.book != null) "Choose another book" else "Try again") }
     OutlinedButton(onSettings) { Text("Open settings") }
 }
 

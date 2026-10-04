@@ -23,8 +23,9 @@ import dev.denlogv.lexislearned.ui.AppProgress
  * @param banner what to show.
  * @param onOpenDeck called with the deck's id when a finished deck is tapped.
  * @param onOpenProgress called to open the generation screen.
- * @param onStop called when the user stops a running generation.
- * @param onContinue called when the user continues a generation that was stopped.
+ * @param onPause called when the user pauses a running generation.
+ * @param onResume called when the user resumes a paused generation.
+ * @param onChooseSections called when the user wants to pick the sections of a paused generation.
  * @param onDismiss called when the user dismisses a result.
  */
 @Composable
@@ -32,8 +33,9 @@ fun GenerationBanner(
     banner: BannerUi,
     onOpenDeck: (Long) -> Unit,
     onOpenProgress: () -> Unit,
-    onStop: () -> Unit,
-    onContinue: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onChooseSections: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     Card(Modifier.fillMaxWidth().padding(16.dp).clickable { banner.deckId?.let(onOpenDeck) ?: onOpenProgress() }) {
@@ -42,9 +44,12 @@ fun GenerationBanner(
             banner.progress?.let { AppProgress(it, Modifier.fillMaxWidth()) }
             Text(banner.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.align(Alignment.End)) {
-                if (banner.running) TextButton(onStop) { Text("Stop") }
-                if (banner.resumable) TextButton(onContinue) { Text("Continue") }
-                if (!banner.running) TextButton(onDismiss) { Text("Dismiss") }
+                banner.pauseLabel?.let { TextButton(onPause) { Text(it) } }
+                banner.resumeLabel?.let {
+                    TextButton(onChooseSections) { Text("Choose sections") }
+                    TextButton(onResume) { Text(it) }
+                }
+                if (banner.dismissible) TextButton(onDismiss) { Text("Dismiss") }
             }
         }
     }

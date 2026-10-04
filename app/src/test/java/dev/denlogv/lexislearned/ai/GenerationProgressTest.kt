@@ -3,10 +3,12 @@ package dev.denlogv.lexislearned.ai
 import dev.denlogv.lexislearned.MainDispatcherRule
 import dev.denlogv.lexislearned.await
 import dev.denlogv.lexislearned.data.Provider
+import dev.denlogv.lexislearned.epub.EpubBook
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -19,17 +21,24 @@ class GenerationProgressTest {
 
     private val fx = GenerationFixture()
 
-    private suspend fun stopAfterTheFirstChapter(llm: GenerationFixture.GatedLlm): GenState.Finished {
+    /** Starts the test book and gives the model's first reply; returns once the second section's request is in flight. */
+    private suspend fun GenerationFixture.GatedLlm.runUntilTheSecondRequest(): EpubBook {
         val book = fx.ready()
         fx.manager.start(book, book.defaultSelection, "en", 8)
-        llm.release()
+        release()
         fx.manager.state.await { it is GenState.Running && it.deckId != null }
         withTimeout(10_000) {
-            llm.started.receive()
-            llm.started.receive()
+            started.receive()
+            started.receive()
         }
-        fx.manager.cancel()
-        return fx.manager.state.await { it is GenState.Finished } as GenState.Finished
+        return book
+    }
+
+    private suspend fun pausedAfterTheFirstChapter(llm: GenerationFixture.GatedLlm): GenState.Paused {
+        llm.runUntilTheSecondRequest()
+        fx.manager.pause()
+        fx.manager.pause() // the second request is never released: only giving it up can end it
+        return fx.manager.state.await { it is GenState.Paused } as GenState.Paused
     }
 
     @Test
@@ -53,52 +62,76 @@ class GenerationProgressTest {
     }
 
     @Test
-    fun stoppingKeepsTheFinishedChaptersAndAbandonsTheRequestInFlight() = runBlocking {
-        val llm = fx.startGated()
-        val book = fx.ready()
-        fx.manager.start(book, book.defaultSelection, "en", 8)
-        llm.release()
-        fx.manager.state.await { it is GenState.Running && it.deckId != null }
-        withTimeout(10_000) {
-            llm.started.receive()
-            llm.started.receive()
-        }
-        fx.manager.cancel() // the second request is never released: only cancelling can end it
-        val done = fx.manager.state.await { it is GenState.Finished } as GenState.Finished
-        assertEquals(2, done.cards)
-        assertEquals(1, fx.storage.export(done.deckId).chapters.size)
-        assertEquals(setOf(3), done.unfinished)
-        assertEquals(book, done.book)
-    }
-
-    @Test
-    fun stoppingBeforeAnythingIsFinishedReturnsToTheReview() = runBlocking {
+    fun pausingWaitsForTheSectionInProgressAndKeepsItsCards() = runBlocking {
         val llm = fx.startGated()
         val book = fx.ready()
         fx.manager.start(book, book.defaultSelection, "en", 8)
         withTimeout(10_000) { llm.started.receive() }
-        fx.manager.cancel()
-        assertEquals(GenState.Ready(book), fx.manager.state.await { it is GenState.Ready })
+        fx.manager.pause()
+        assertTrue((fx.manager.state.value as GenState.Running).pausing)
+        llm.release()
+        val paused = fx.manager.state.await { it is GenState.Paused } as GenState.Paused
+        assertEquals(2, paused.cards)
+        assertEquals(setOf(3), paused.remaining)
+        assertEquals(1, fx.storage.export(paused.deckId!!).chapters.size)
+    }
+
+    @Test
+    fun pausingTwiceGivesUpTheRequestInFlight() = runBlocking {
+        val llm = fx.startGated()
+        val book = llm.runUntilTheSecondRequest()
+        fx.manager.pause()
+        assertEquals(GenState.Running::class, fx.manager.state.value::class) // the second request is still being waited for
+        fx.manager.pause()
+        val paused = fx.manager.state.await { it is GenState.Paused } as GenState.Paused
+        assertEquals(2, paused.cards)
+        assertEquals(setOf(3), paused.remaining)
+        assertEquals(book, paused.book)
+    }
+
+    @Test
+    fun pausingBeforeAnythingIsFinishedKeepsEverythingToDo() = runBlocking {
+        val llm = fx.startGated()
+        val book = fx.ready()
+        fx.manager.start(book, book.defaultSelection, "en", 8)
+        withTimeout(10_000) { llm.started.receive() }
+        fx.manager.pause()
+        fx.manager.pause()
+        val paused = fx.manager.state.await { it is GenState.Paused } as GenState.Paused
+        assertEquals(book.defaultSelection, paused.remaining)
+        assertNull(paused.deckId)
         assertTrue(fx.library.decks(1).first().isEmpty())
     }
 
     @Test
-    fun continuingAfterAStopAddsTheRestToTheSameDeck() = runBlocking {
+    fun resumingAddsTheRestToTheSameDeck() = runBlocking {
         val llm = fx.startGated()
-        val stopped = stopAfterTheFirstChapter(llm)
-        val rest = GenState.Continuation(stopped.deckId, stopped.unfinished)
-        fx.manager.start(stopped.book!!, rest.selection, "en", 8, rest)
-        assertEquals(stopped.deckId, (fx.manager.state.value as GenState.Running).deckId)
+        val paused = pausedAfterTheFirstChapter(llm)
+        fx.manager.resume()
+        assertEquals(paused.deckId, (fx.manager.state.value as GenState.Running).deckId)
         llm.release()
-        val done = fx.manager.state.await { it is GenState.Finished && it.unfinished.isEmpty() } as GenState.Finished
-        assertEquals(stopped.deckId, done.deckId)
+        val done = fx.manager.state.await { it is GenState.Finished } as GenState.Finished
+        assertEquals(paused.deckId, done.deckId)
         assertEquals(3, done.cards)
         assertEquals(listOf("01 Chapter One", "02 Chapter Two"), fx.storage.export(done.deckId).chapters.map { it.title })
         assertEquals(1, fx.library.decks(1).first().size)
+        assertNull(fx.store.load())
     }
 
     @Test
-    fun aSectionThatFailedIsOfferedAgain() = runBlocking {
+    fun choosingTheSectionsAddsThemToTheSameDeckToo() = runBlocking {
+        val llm = fx.startGated()
+        val paused = pausedAfterTheFirstChapter(llm)
+        val rest = GenState.Continuation(paused.deckId, paused.remaining)
+        fx.manager.start(paused.book, rest.selection, "en", 8, rest)
+        llm.release()
+        val done = fx.manager.state.await { it is GenState.Finished } as GenState.Finished
+        assertEquals(paused.deckId, done.deckId)
+        assertEquals(3, done.cards)
+    }
+
+    @Test
+    fun aSectionThatFailedIsRetriedWithoutPayingForTheOthersAgain() = runBlocking {
         fx.settings.setApiKey(Provider.ANTHROPIC, "sk-test")
         fx.answer = { _, user ->
             when {
@@ -109,24 +142,30 @@ class GenerationProgressTest {
         }
         val book = fx.ready()
         fx.manager.start(book, book.defaultSelection, "en", 8)
-        val first = fx.manager.state.await { it is GenState.Finished } as GenState.Finished
-        assertEquals(setOf(3), first.unfinished)
+        val first = fx.manager.state.await { it is GenState.Paused } as GenState.Paused
+        assertEquals(setOf(3), first.remaining)
         assertEquals(1, first.failed.size)
-        fx.answer = { _, user -> if (user.startsWith("Give")) "{}" else GenerationFixture.SECOND_REPLY }
-        fx.manager.start(book, first.unfinished, "en", 8, GenState.Continuation(first.deckId, first.unfinished))
-        val done = fx.manager.state.await { it is GenState.Finished && it.unfinished.isEmpty() } as GenState.Finished
+        val asked = mutableListOf<String>()
+        fx.answer = { _, user ->
+            if (!user.startsWith("Give")) asked += user
+            if (user.startsWith("Give")) "{}" else GenerationFixture.SECOND_REPLY
+        }
+        fx.manager.resume()
+        val done = fx.manager.state.await { it is GenState.Finished } as GenState.Finished
         assertEquals(first.deckId, done.deckId)
         assertEquals(3, done.cards)
-        assertTrue(done.failed.isEmpty())
+        assertEquals(1, asked.size) // only the failed section was sent again
+        assertTrue(asked.single().contains("Chapter Two"))
     }
 
     @Test
-    fun continuingADeckThatWasDeletedFails() = runBlocking {
+    fun resumingADeckThatWasDeletedKeepsTheSectionsAndSaysWhy() = runBlocking {
         val llm = fx.startGated()
-        val stopped = stopAfterTheFirstChapter(llm)
-        fx.library.delete(stopped.deckId)
-        fx.manager.start(stopped.book!!, stopped.unfinished, "en", 8, GenState.Continuation(stopped.deckId, stopped.unfinished))
-        val failed = fx.manager.state.await { it is GenState.Failed } as GenState.Failed
-        assertTrue(failed.message.contains("not found"))
+        val paused = pausedAfterTheFirstChapter(llm)
+        fx.library.delete(paused.deckId!!)
+        fx.manager.resume()
+        val again = fx.manager.state.await { it is GenState.Paused && it.failed.isNotEmpty() } as GenState.Paused
+        assertTrue(again.failed.single().contains("not found"))
+        assertEquals(paused.remaining, again.remaining)
     }
 }

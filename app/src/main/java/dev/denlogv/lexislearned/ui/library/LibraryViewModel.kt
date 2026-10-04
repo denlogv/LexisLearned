@@ -58,8 +58,11 @@ class LibraryViewModel(
     /** One-off messages for the user, such as the result of an import. */
     val messages: Flow<String> = outbox.receiveAsFlow()
 
-    /** Stops deck generation; chapters that are finished stay in the library. */
-    fun stopGeneration() = generation.cancel()
+    /** Pauses deck generation after the current section; chapters that are finished stay in the library. */
+    fun pauseGeneration() = generation.pause()
+
+    /** Resumes a paused generation with the sections that are left. */
+    fun resumeGeneration() = generation.resume()
 
     /** Dismisses the result of a finished or failed generation. */
     fun dismissGeneration() = generation.reset()

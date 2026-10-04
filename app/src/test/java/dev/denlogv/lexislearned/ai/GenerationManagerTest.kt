@@ -6,6 +6,7 @@ import dev.denlogv.lexislearned.data.Provider
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -75,49 +76,73 @@ class GenerationManagerTest {
         fx.manager.start(book, book.defaultSelection, "en", 8)
         val done = fx.manager.state.await { it is GenState.Finished } as GenState.Finished
         assertEquals(2, done.cards) // the second chapter repeats the first one's words, which are dropped
-        assertTrue(done.failed.isEmpty())
         assertEquals(1, fx.library.decks(1).first().size)
         assertEquals(Triple(Provider.ANTHROPIC, "sk-test", Provider.ANTHROPIC.defaultModel), fx.created.single())
+        assertNull(fx.store.load()) // nothing is left to resume
         fx.manager.reset()
         assertEquals(GenState.Idle, fx.manager.state.value)
     }
 
     @Test
-    fun failingEverySectionEndsInFailure() = runBlocking {
+    fun failingEverySectionKeepsTheBookToRetry() = runBlocking {
         fx.settings.setApiKey(Provider.ANTHROPIC, "sk-test")
         fx.answer = { _, user -> if (user.startsWith("Give")) "{}" else "garbage" }
         val book = fx.ready()
         fx.manager.start(book, book.defaultSelection, "en", 8)
-        val failed = fx.manager.state.await { it is GenState.Failed } as GenState.Failed
-        assertTrue(failed.message.isNotBlank())
+        val paused = fx.manager.state.await { it is GenState.Paused } as GenState.Paused
+        assertNull(paused.deckId)
+        assertEquals(book.defaultSelection, paused.remaining)
+        assertEquals(2, paused.failed.size)
+        assertEquals(paused.remaining, fx.store.load()!!.record.remaining)
     }
 
     @Test
-    fun aRejectedKeyIsReported() = runBlocking {
+    fun aRunWithoutAnyCardsFailsAndCanGoBackToTheReview() = runBlocking {
+        fx.settings.setApiKey(Provider.ANTHROPIC, "sk-test")
+        fx.answer = { _, user -> if (user.startsWith("Give")) "{}" else """{"cards":[]}""" }
+        val book = fx.ready()
+        fx.manager.start(book, book.defaultSelection, "en", 8)
+        val failed = fx.manager.state.await { it is GenState.Failed } as GenState.Failed
+        assertEquals("No cards were generated.", failed.message)
+        assertNull(fx.store.load())
+        fx.manager.backToReview()
+        assertEquals(GenState.Ready(book), fx.manager.state.value)
+    }
+
+    @Test
+    fun aRejectedKeyIsReportedAndTheRunCanBeRetriedWithAnotherKey() = runBlocking {
         fx.settings.setApiKey(Provider.ANTHROPIC, "sk-bad")
         fx.answer = { _, _ -> throw LlmException("HTTP 401: invalid x-api-key", 401) }
         val book = fx.ready()
         fx.manager.start(book, book.defaultSelection, "en", 8)
-        val failed = fx.manager.state.await { it is GenState.Failed } as GenState.Failed
-        assertTrue(failed.message.contains("401"))
+        val paused = fx.manager.state.await { it is GenState.Paused } as GenState.Paused
+        assertEquals(listOf("HTTP 401: invalid x-api-key"), paused.failed)
+        assertNull(paused.deckId)
+        fx.settings.setApiKey(Provider.ANTHROPIC, "sk-good")
+        fx.answer = { _, user -> if (user.startsWith("Give")) "{}" else GenerationFixture.CARDS_REPLY }
+        fx.manager.resume()
+        fx.manager.state.await { it is GenState.Finished }
+        assertEquals(1, fx.library.decks(1).first().size)
     }
 
     @Test
-    fun cancellingKeepsWhatIsFinished() = runBlocking {
+    fun pausingKeepsWhatIsFinished() = runBlocking {
         fx.settings.setApiKey(Provider.ANTHROPIC, "sk-test")
         val book = fx.ready()
-        fx.manager.cancel()
         fx.answer = { _, user ->
-            if (!user.startsWith("Give")) fx.manager.cancel()
+            if (!user.startsWith("Give")) fx.manager.pause() // asked while the first section is in progress
             if (user.startsWith("Give")) "{}" else GenerationFixture.CARDS_REPLY
         }
         fx.manager.start(book, book.defaultSelection, "en", 8)
-        val done = fx.manager.state.await { it is GenState.Finished } as GenState.Finished
-        assertEquals(2, done.cards)
+        val paused = fx.manager.state.await { it is GenState.Paused } as GenState.Paused
+        assertEquals(2, paused.cards) // the section in progress was finished, not thrown away
+        assertEquals(setOf(3), paused.remaining)
+        assertTrue(paused.failed.isEmpty())
+        assertEquals(paused.remaining, fx.store.load()!!.record.remaining)
     }
 
     @Test
-    fun aFailureAfterSomeChaptersKeepsThem() = runBlocking {
+    fun aFailureAfterSomeChaptersKeepsThemAndOffersTheRest() = runBlocking {
         fx.settings.setApiKey(Provider.ANTHROPIC, "sk-test")
         fx.answer = { _, user ->
             when {
@@ -128,10 +153,35 @@ class GenerationManagerTest {
         }
         val book = fx.ready()
         fx.manager.start(book, book.defaultSelection, "en", 8)
-        val done = fx.manager.state.await { it is GenState.Finished } as GenState.Finished
-        assertEquals(2, done.cards)
-        assertEquals(listOf("HTTP 401: rejected"), done.failed)
+        val paused = fx.manager.state.await { it is GenState.Paused } as GenState.Paused
+        assertEquals(2, paused.cards)
+        assertEquals(listOf("HTTP 401: rejected"), paused.failed)
+        assertEquals(setOf(3), paused.remaining)
         assertEquals(1, fx.library.decks(1).first().size)
+    }
+
+    @Test
+    fun aPausedGenerationThatCannotStartStaysPausedWithTheReason() = runBlocking {
+        fx.settings.setApiKey(Provider.ANTHROPIC, "sk-test")
+        fx.answer = { _, user -> if (user.startsWith("Give")) "{}" else throw LlmException("HTTP 500: busy", 500) }
+        val book = fx.ready()
+        fx.manager.start(book, book.defaultSelection, "en", 8)
+        val paused = fx.manager.state.await { it is GenState.Paused } as GenState.Paused
+        fx.settings.setApiKey(Provider.ANTHROPIC, "")
+        fx.manager.resume()
+        val still = fx.manager.state.value as GenState.Paused
+        assertEquals(paused.remaining, still.remaining)
+        assertTrue(still.failed.single().contains("API key"))
+        assertEquals(paused.remaining, fx.store.load()!!.record.remaining) // and it can still be resumed after a restart
+    }
+
+    @Test
+    fun pausingResumingDiscardingAndGoingBackDoNothingOutsideTheirStates() {
+        fx.manager.pause()
+        fx.manager.resume()
+        fx.manager.discard()
+        fx.manager.backToReview()
+        assertEquals(GenState.Idle, fx.manager.state.value)
     }
 
     @Test

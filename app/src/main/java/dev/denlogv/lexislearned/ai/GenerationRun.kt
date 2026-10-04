@@ -52,6 +52,7 @@ class GenerationRun internal constructor(
                 options.onChapter(header, chapter)
                 stored++
             }
+            options.onSectionDone()
         }
         options.onProgress(stored, sections.size, assembler.cardCount, "Done")
     }

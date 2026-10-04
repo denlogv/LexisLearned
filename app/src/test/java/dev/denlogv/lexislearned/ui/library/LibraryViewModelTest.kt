@@ -3,6 +3,7 @@ package dev.denlogv.lexislearned.ui.library
 import dev.denlogv.lexislearned.MainDispatcherRule
 import dev.denlogv.lexislearned.ai.GenState
 import dev.denlogv.lexislearned.ai.GenerationManager
+import dev.denlogv.lexislearned.ai.MemoryJobStore
 import dev.denlogv.lexislearned.await
 import dev.denlogv.lexislearned.data.DeckLibrary
 import dev.denlogv.lexislearned.data.DeckStorage
@@ -35,7 +36,7 @@ class LibraryViewModelTest {
 
     // Created lazily: a view model must be built after the rule has replaced the main dispatcher.
     private val settings = testSettings()
-    private val generation = GenerationManager(CoroutineScope(Dispatchers.Unconfined), storage, settings)
+    private val generation = GenerationManager(CoroutineScope(Dispatchers.Unconfined), storage, settings, MemoryJobStore())
     private val vm by lazy { LibraryViewModel(library, storage, settings, files, generation) }
 
     private suspend fun next(): String = withTimeout(10_000) { vm.messages.first() }
@@ -83,7 +84,8 @@ class LibraryViewModelTest {
     fun generationProgressIsExposedAndCanBeDismissed() = runBlocking {
         generation.fail("offline")
         assertEquals(GenState.Failed("offline"), vm.generating.value)
-        vm.stopGeneration() // nothing is running, so this changes nothing
+        vm.pauseGeneration() // nothing is running or paused, so these change nothing
+        vm.resumeGeneration()
         vm.dismissGeneration()
         assertEquals(GenState.Idle, vm.generating.value)
     }

@@ -24,8 +24,8 @@ import kotlinx.coroutines.launch
  * @param generation runs the generation and reports its stage.
  * @param settings the user's settings.
  * @param files reads the file the user picks.
- * @param continuing whether the screen was opened to add the rest of a book to a deck that was stopped early. Otherwise it starts
- * afresh, and nothing left over from an earlier book is shown.
+ * @param continuing whether the screen was opened to pick the sections of a paused generation. Otherwise it starts afresh, and
+ * nothing left over from an earlier book is shown; a paused generation is still shown, because only the user ends it.
  */
 class EpubViewModel(
     private val generation: GenerationManager,
@@ -88,7 +88,7 @@ class EpubViewModel(
      */
     fun setLevel(level: CefrLevel) = settings.setLevel(level)
 
-    /** Starts generating the deck from the reviewed book, if there is one; for a deck that was stopped early, adds to that deck. */
+    /** Starts generating the deck from the reviewed book, if there is one; for a paused generation, adds to its deck. */
     fun generate() {
         val reviewed = target.value ?: return
         val choices = review.value
@@ -96,11 +96,20 @@ class EpubViewModel(
         continuingRest.value = false
     }
 
-    /** Stops after the current section and keeps what is finished. */
-    fun cancel() = generation.cancel()
+    /** Pauses after the current section, or at once when asked a second time, and keeps what is finished. */
+    fun pause() = generation.pause()
 
-    /** Shows the review of the book to add the rest to the deck that was stopped early; the deck's result stays as it is until then. */
-    fun continueGeneration() {
+    /** Does the sections that are left of a paused generation. */
+    fun resume() = generation.resume()
+
+    /** Gives up on the sections that are left of a paused generation; the deck stays in the library. */
+    fun discard() = generation.discard()
+
+    /** Goes back to the review of the book after a failure, without choosing the file again. */
+    fun backToReview() = generation.backToReview()
+
+    /** Shows the review of the book to pick the sections of a paused generation; the pause stays as it is until then. */
+    fun chooseSections() {
         continuingRest.value = true
     }
 

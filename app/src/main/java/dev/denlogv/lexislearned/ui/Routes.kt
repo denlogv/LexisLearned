@@ -11,7 +11,7 @@ object Routes {
     /** The "deck from EPUB" screen, for a new book. */
     const val EPUB = "epub"
 
-    /** The "deck from EPUB" screen, for adding the rest of a book to a deck that was stopped early. */
+    /** The "deck from EPUB" screen, for picking the sections of a paused generation. */
     const val EPUB_CONTINUE = "epub/continue"
 
     /** Pattern of the book screen. */

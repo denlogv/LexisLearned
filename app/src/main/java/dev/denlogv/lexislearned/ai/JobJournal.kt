@@ -46,11 +46,14 @@ class JobJournal(private val store: JobStore) {
      *
      * @param write the write.
      */
-    private suspend fun guarded(write: () -> Unit) = withContext(io + NonCancellable) {
-        try {
-            write()
-        } catch (ignored: IOException) {
-            // Best effort, see the class documentation.
+    private suspend fun guarded(write: () -> Unit) = withContext(NonCancellable) {
+        // Nested on purpose: a single withContext(io + NonCancellable) would still throw on its way back to a cancelled caller.
+        withContext(io) {
+            try {
+                write()
+            } catch (ignored: IOException) {
+                // Best effort, see the class documentation.
+            }
         }
     }
 }

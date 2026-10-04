@@ -3,6 +3,7 @@ package dev.denlogv.lexislearned
 import android.app.Application
 import android.content.Context
 import androidx.room.Room
+import dev.denlogv.lexislearned.ai.FileJobStore
 import dev.denlogv.lexislearned.ai.GenerationManager
 import dev.denlogv.lexislearned.data.AppDatabase
 import dev.denlogv.lexislearned.data.DeckLibrary
@@ -10,11 +11,12 @@ import dev.denlogv.lexislearned.data.DeckStorage
 import dev.denlogv.lexislearned.data.Migrations
 import dev.denlogv.lexislearned.data.Settings
 import dev.denlogv.lexislearned.data.StudyRepository
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
-/** The application: creates the long-lived objects (settings, database repository, generation manager) once. */
+/** The application: creates the long-lived objects (settings, database, generation manager) once and restores a paused generation. */
 class LexisLearnedApp : Application() {
     /** Scope for work that must outlive any screen, such as generating a deck. */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -50,6 +52,7 @@ class LexisLearnedApp : Application() {
         library = DeckLibrary(db)
         study = StudyRepository(db)
         storage = DeckStorage(db)
-        generation = GenerationManager(appScope, storage, settings)
+        generation = GenerationManager(appScope, storage, settings, FileJobStore(File(filesDir, "generation")))
+        generation.restore()
     }
 }

@@ -4,6 +4,7 @@ import dev.denlogv.lexislearned.MainDispatcherRule
 import dev.denlogv.lexislearned.ai.GenState
 import dev.denlogv.lexislearned.ai.GenerationManager
 import dev.denlogv.lexislearned.ai.LlmException
+import dev.denlogv.lexislearned.ai.MemoryJobStore
 import dev.denlogv.lexislearned.ai.ScriptedLlm
 import dev.denlogv.lexislearned.await
 import dev.denlogv.lexislearned.data.DeckStorage
@@ -30,11 +31,12 @@ class EpubViewModelTest {
 
     private val settings = testSettings()
     private val files = MemoryFiles()
-    private val generation = GenerationManager(CoroutineScope(Dispatchers.Unconfined), DeckStorage(memoryDb()), settings) { _, _ ->
-        ScriptedLlm { _, user ->
-            if (user.startsWith("Give")) "{}" else """{"cards":[{"a":"alpha","b":"альфа"}]}"""
+    private val generation =
+        GenerationManager(CoroutineScope(Dispatchers.Unconfined), DeckStorage(memoryDb()), settings, MemoryJobStore()) { _, _ ->
+            ScriptedLlm { _, user ->
+                if (user.startsWith("Give")) "{}" else """{"cards":[{"a":"alpha","b":"альфа"}]}"""
+            }
         }
-    }
 
     // Created lazily: a view model must be built after the rule has replaced the main dispatcher.
     private val vm by lazy { EpubViewModel(generation, settings, files) }
@@ -49,13 +51,15 @@ class EpubViewModelTest {
         assertEquals("en", review.lang)
     }
 
+    private var chapterTwoFails = true
+
     private fun partialManager(): GenerationManager {
         settings.setApiKey(Provider.ANTHROPIC, "k")
-        return GenerationManager(CoroutineScope(Dispatchers.Unconfined), DeckStorage(memoryDb()), settings) { _, _ ->
+        return GenerationManager(CoroutineScope(Dispatchers.Unconfined), DeckStorage(memoryDb()), settings, MemoryJobStore()) { _, _ ->
             ScriptedLlm { _, user ->
                 when {
                     user.startsWith("Give") -> "{}"
-                    user.contains("Chapter Two") -> throw LlmException("busy", 500)
+                    user.contains("Chapter Two") && chapterTwoFails -> throw LlmException("busy", 500)
                     else -> """{"cards":[{"a":"alpha","b":"альфа"}]}"""
                 }
             }
@@ -63,39 +67,69 @@ class EpubViewModelTest {
     }
 
     /** Generates the test book with the second chapter failing, so the deck ends up with a section missing. */
-    private suspend fun GenerationManager.runWithOneSectionMissing(): GenState.Finished {
+    private suspend fun GenerationManager.runWithOneSectionMissing(): GenState.Paused {
         load(loremEpub())
         val book = (state.await { it is GenState.Ready } as GenState.Ready).book
         start(book, book.defaultSelection, "en", 8)
-        return state.await { it is GenState.Finished } as GenState.Finished
+        return state.await { it is GenState.Paused } as GenState.Paused
     }
 
     @Test
-    fun continuingReviewsTheMissingSectionsAndAddsToTheSameDeck() = runBlocking {
+    fun choosingTheSectionsReviewsTheMissingOnesAndAddsToTheSameDeck() = runBlocking {
         val partial = partialManager()
         val screen = EpubViewModel(partial, settings, files) // the screen is open while the deck is generated
-        val stopped = partial.runWithOneSectionMissing()
-        screen.continueGeneration() // from the result panel
-        assertEquals(setOf(3), screen.review.await { it.selected.isNotEmpty() }.selected)
-        assertEquals(stopped.deckId, screen.target.value?.continuation?.deckId)
+        val paused = partial.runWithOneSectionMissing()
+        screen.chooseSections() // from the paused panel
+        assertEquals(setOf(3), screen.review.await { it.selected == setOf(3) }.selected) // set on another thread, so wait for it
+        assertEquals(paused.deckId, screen.target.value?.continuation?.deckId)
+        chapterTwoFails = false
         screen.generate()
-        val done = partial.state.await {
-            it is GenState.Finished && it.deckId == stopped.deckId && it.cards >= stopped.cards
-        } as GenState.Finished
-        assertEquals(stopped.deckId, done.deckId)
+        val done = partial.state.await { it is GenState.Finished } as GenState.Finished
+        assertEquals(paused.deckId, done.deckId)
         assertNull(screen.target.value)
     }
 
     @Test
-    fun leavingTheReviewOfTheRestKeepsTheResultAndOpeningTheScreenAgainStartsFresh() = runBlocking {
+    fun leavingTheReviewKeepsThePauseAndOpeningTheScreenAgainStillShowsIt() = runBlocking {
         val partial = partialManager()
-        val stopped = partial.runWithOneSectionMissing()
+        val paused = partial.runWithOneSectionMissing()
         val review = EpubViewModel(partial, settings, files, continuing = true)
         assertEquals(setOf(3), review.target.value?.continuation?.selection)
-        assertEquals(stopped, partial.state.value) // backing out of the review changes nothing: the card and its Continue stay
-        val fresh = EpubViewModel(partial, settings, files)
-        assertEquals(GenState.Idle, fresh.state.value)
-        assertNull(fresh.target.value) // no stale book: the user can choose another one
+        assertEquals(paused, partial.state.value) // backing out of the review changes nothing: the pause and its buttons stay
+        val again = EpubViewModel(partial, settings, files)
+        assertEquals(paused, again.state.value) // only the user ends a pause, so opening the screen does not
+        assertNull(again.target.value)
+    }
+
+    @Test
+    fun resumingFromTheScreenRetriesTheFailedSectionOnly() = runBlocking {
+        val partial = partialManager()
+        val paused = partial.runWithOneSectionMissing()
+        val screen = EpubViewModel(partial, settings, files)
+        chapterTwoFails = false // the provider recovered
+        screen.resume()
+        val done = partial.state.await { it is GenState.Finished } as GenState.Finished
+        assertEquals(paused.deckId, done.deckId)
+    }
+
+    @Test
+    fun discardingFromTheScreenEndsThePause() = runBlocking {
+        val partial = partialManager()
+        partial.runWithOneSectionMissing()
+        val screen = EpubViewModel(partial, settings, files)
+        screen.discard()
+        assertEquals(GenState.Idle, screen.state.value)
+    }
+
+    @Test
+    fun aFailureCanGoBackToTheReviewOfTheSameBook() = runBlocking {
+        files.files["book.epub"] = loremEpub()
+        vm.choose("book.epub")
+        val book = (vm.state.await { it is GenState.Ready } as GenState.Ready).book
+        generation.start(book, book.defaultSelection, "en", 8) // no key is saved
+        assertTrue(vm.state.await { it is GenState.Failed }.let { (it as GenState.Failed).book == book })
+        vm.backToReview()
+        assertEquals(GenState.Ready(book), vm.state.value)
     }
 
     @Test
@@ -132,9 +166,11 @@ class EpubViewModelTest {
     }
 
     @Test
-    fun generateAndCancelDoNothingWithoutABook() {
+    fun generatePauseResumeAndDiscardDoNothingWithoutABookOrAPause() {
         vm.generate()
-        vm.cancel()
+        vm.pause()
+        vm.resume()
+        vm.discard()
         assertEquals(GenState.Idle, vm.state.value)
     }
 }

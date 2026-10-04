@@ -25,21 +25,25 @@ typealias ClientFactory = (Prefs, String) -> LlmClient
  * Runs "EPUB to deck" in the application scope so it survives screen changes, and publishes its progress as [GenState].
  *
  * The deck is stored while it is generated: the book appears in the library with its first chapter, and every further chapter
- * is added as soon as it is ready. Stopping therefore loses nothing that was finished, and the rest of the book can be added to the
- * same deck later (see [start]).
+ * is added as soon as it is ready. Pausing, a failed section or even the app being killed therefore loses nothing that was finished:
+ * the book and the progress are kept on disk (see [JobStore]), [restore] brings them back as [GenState.Paused] on the next launch,
+ * and [resume] does the sections that are left without paying for the finished ones again.
  *
  * @param scope where background work runs.
  * @param storage where the deck is stored.
  * @param settings provider, key, level and prompt settings.
+ * @param store where an unfinished generation is kept between launches of the app.
  * @param clientFactory creates the LLM client; tests replace it with a fake.
  */
 class GenerationManager(
     private val scope: CoroutineScope,
     private val storage: DeckStorage,
     private val settings: Settings,
+    store: JobStore,
     private val clientFactory: ClientFactory = Providers::defaultClient,
 ) {
     private val _state = MutableStateFlow<GenState>(GenState.Idle)
+    private val journal = JobJournal(store)
 
     /** The current stage. */
     val state: StateFlow<GenState> = _state
@@ -48,6 +52,17 @@ class GenerationManager(
 
     @Volatile private var stopRequested = false
 
+    private var epub: ByteArray? = null
+    private var choices = Choices("en", GenerationOptions().cardsPer1000Words)
+
+    /**
+     * What the user chose when generation was started, which a resume repeats.
+     *
+     * @property sourceLang the book's language code.
+     * @property cardsPer1000Words how many cards to ask for per thousand words.
+     */
+    private class Choices(val sourceLang: String, val cardsPer1000Words: Int)
+
     /**
      * Reads an EPUB in the background and moves to [GenState.Ready], or to [GenState.Failed] if it cannot be read.
      *
@@ -55,6 +70,7 @@ class GenerationManager(
      */
     fun load(bytes: ByteArray) {
         _state.value = GenState.Loading
+        epub = bytes
         scope.launch { _state.value = readBook(bytes) }
     }
 
@@ -65,12 +81,13 @@ class GenerationManager(
      * @param selected indexes of the sections to use.
      * @param sourceLang the book's language code.
      * @param cardsPer1000Words how many cards to ask for per thousand words.
-     * @param continuation the deck to add the chapters to, when the rest of a book is added to a deck that was stopped early; null
-     * to create a new deck.
+     * @param continuation the deck to add the chapters to, when the rest of a book is added to a deck that was paused; null to
+     * create a new deck.
      */
     fun start(book: EpubBook, selected: Set<Int>, sourceLang: String, cardsPer1000Words: Int, continuation: GenState.Continuation? = null) {
         val prefs = settings.prefs.value
-        val llm = clientOrFail(prefs, book) ?: return
+        val llm = clientOrReject(prefs, book) ?: return
+        choices = Choices(sourceLang, cardsPer1000Words)
         val options = GenerationOptions(
             selected = selected,
             sourceLang = sourceLang,
@@ -79,9 +96,47 @@ class GenerationManager(
             isCancelled = { stopRequested },
         )
         val job =
-            GenerationJob(book, prefs, storage, options, continuation) { id, cards -> publish { it.copy(deckId = id, cards = cards) } }
+            GenerationJob(book, prefs, storage, options, continuation, journal) { id, cards ->
+                publish { it.copy(deckId = id, cards = cards) }
+            }
         _state.value = GenState.Running(0, selected.size, 0, "Starting…", book.title, continuation?.deckId)
         launch(job, llm)
+    }
+
+    /**
+     * Does the sections that are left of a paused generation, adding them to the same deck with the choices made at the start.
+     * Nothing happens unless the state is [GenState.Paused].
+     */
+    fun resume() {
+        val paused = _state.value as? GenState.Paused ?: return
+        val rest = GenState.Continuation(paused.deckId, paused.remaining)
+        start(paused.book, paused.remaining, choices.sourceLang, choices.cardsPer1000Words, rest)
+    }
+
+    /**
+     * Asks a running generation to pause: the section being worked on is finished first, because its request is paid for already, and
+     * then the state becomes [GenState.Paused]. Asking again gives up the request in flight at once; that section is done on resume.
+     */
+    fun pause() {
+        if (_state.value !is GenState.Running) return
+        if (stopRequested) job?.cancel() else stopRequested = true
+        publish { it.copy(pausing = true) }
+    }
+
+    /**
+     * Brings back a generation that the app left unfinished, as [GenState.Paused]. Call it when the app starts. Nothing is restored
+     * if there is none, if it cannot be read, or if something else is going on already.
+     */
+    fun restore() {
+        scope.launch {
+            val stored = journal.restore() ?: return@launch
+            val book = (readBook(stored.epub) as? GenState.Ready)?.book
+            val record = stored.record
+            if (book == null || record.remaining.isEmpty()) return@launch journal.clear()
+            epub = stored.epub
+            choices = Choices(record.sourceLang, record.cardsPer1000Words)
+            _state.compareAndSet(GenState.Idle, GenState.Paused(record.deckId, record.cards, book, record.remaining, record.failed))
+        }
     }
 
     /**
@@ -93,34 +148,37 @@ class GenerationManager(
         _state.value = GenState.Failed(message)
     }
 
-    /**
-     * Stops generation at once, also abandoning the request in flight. Chapters that were finished are already in the library:
-     * the state becomes [GenState.Finished] for them, or [GenState.Ready] if there were none.
-     */
-    fun cancel() {
-        stopRequested = true
-        job?.cancel()
+    /** Returns from [GenState.Failed] to the review of the book, which is still loaded, so the file need not be chosen again. */
+    fun backToReview() {
+        (_state.value as? GenState.Failed)?.book?.let { _state.value = GenState.Ready(it) }
     }
 
-    /** Returns to [GenState.Idle] unless generation is running. */
+    /** Returns to [GenState.Idle] unless generation is running or paused; a pause is only ended by [discard]. */
     fun reset() {
-        if (_state.value !is GenState.Running) _state.value = GenState.Idle
+        if (_state.value !is GenState.Running && _state.value !is GenState.Paused) _state.value = GenState.Idle
+    }
+
+    /** Gives up on the sections that are left of a paused generation: the deck stays in the library, the book is forgotten. */
+    fun discard() {
+        if (_state.value !is GenState.Paused) return
+        _state.value = GenState.Idle
+        // Undispatched: the journal queues the deletion before any write of a generation that starts next.
+        scope.launch(start = CoroutineStart.UNDISPATCHED) { journal.clear() }
     }
 
     /**
-     * Creates the client, or moves to [GenState.Failed] if the provider is not set up.
+     * Creates the client. If the provider is not set up, a paused generation stays paused with the reason, and anything else fails.
      *
      * @param prefs the current settings.
-     * @param book the book, so the user can retry from the failure screen; null if there is none to offer.
-     * @return the client, or null after failing.
+     * @param book the book, so the user can go back to its review after a failure.
+     * @return the client, or null after rejecting the start.
      */
-    private fun clientOrFail(prefs: Prefs, book: EpubBook?): LlmClient? {
+    private fun clientOrReject(prefs: Prefs, book: EpubBook): LlmClient? {
         val key = settings.apiKey()
-        if (key.isNullOrBlank() || !prefs.ready) {
-            _state.value = GenState.Failed(Providers.missingSetting(prefs), book)
-            return null
-        }
-        return clientFactory(prefs, key)
+        if (!key.isNullOrBlank() && prefs.ready) return clientFactory(prefs, key)
+        val message = Providers.missingSetting(prefs)
+        _state.update { if (it is GenState.Paused) it.copy(failed = listOf(message)) else GenState.Failed(message, book) }
+        return null
     }
 
     /**
@@ -131,7 +189,10 @@ class GenerationManager(
      */
     private fun launch(generation: GenerationJob, llm: LlmClient) {
         stopRequested = false
-        val launched = scope.launch(start = CoroutineStart.LAZY) { _state.value = generation.execute(llm) }
+        val launched = scope.launch(start = CoroutineStart.LAZY) {
+            epub?.let { journal.begin(it) }
+            _state.value = generation.execute(llm)
+        }
         job = launched
         launched.start()
     }
