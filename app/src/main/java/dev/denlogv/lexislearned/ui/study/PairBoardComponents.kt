@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -24,7 +23,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.denlogv.lexislearned.data.CardEntity
 import dev.denlogv.lexislearned.domain.Direction
@@ -41,6 +43,9 @@ private const val MATCHED_ALPHA = 0.25f
 
 /** Smallest height of a tile. */
 private val TILE_MIN_HEIGHT = 72.dp
+
+/** Gap between two tiles, across and down. */
+private val TILE_SPACING = 12.dp
 
 /**
  * A Pair step: words on the left, their shuffled translations on the right; tap a word, then its translation.
@@ -65,46 +70,66 @@ fun PairBoard(cards: List<CardEntity>, d: Direction, onDone: (Set<Long>) -> Unit
             onDone(state.missed)
         }
     }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 16.dp), // so the last row clears the screen's edge
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
         Text(
             "Match each word with its translation",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TileColumn(Modifier.weight(1f), cards, { it.prompt(d) }, state) { state = state.pickLeft(it) }
-            TileColumn(Modifier.weight(1f), right, { it.answer(d) }, state, isRight = true) { state = state.pickRight(it) }
+        PairGrid(cards, right, d, state, { state = state.pickLeft(it) }) { state = state.pickRight(it) }
+    }
+}
+
+/**
+ * The tiles of a Pair board: each row holds a word on the left and one of the shuffled translations on the right.
+ *
+ * @param words the cards in the order of the words.
+ * @param translations the same cards in the shuffled order of the translations.
+ * @param d which side is shown on the left.
+ * @param state the board state, which decides each tile's colour.
+ * @param onWord called with a card's id when its word is tapped.
+ * @param onTranslation called with a card's id when its translation is tapped.
+ */
+@Composable
+private fun PairGrid(
+    words: List<CardEntity>,
+    translations: List<CardEntity>,
+    d: Direction,
+    state: PairState,
+    onWord: (Long) -> Unit,
+    onTranslation: (Long) -> Unit,
+) {
+    EqualTileGrid(columns = 2, spacing = TILE_SPACING) {
+        words.zip(translations).forEach { (word, translation) ->
+            PairTile(word.prompt(d), word.id in state.matched, selected = state.left == word.id, error = false) { onWord(word.id) }
+            PairTile(translation.answer(d), translation.id in state.matched, selected = false, error = state.wrong == translation.id) {
+                onTranslation(translation.id)
+            }
         }
     }
 }
 
 /**
- * One column of tiles.
+ * Lays tiles out in rows, every tile as wide as its column and as tall as the tallest tile on the board, so the board reads as a
+ * grid however long each word or translation is. Children are placed row by row, left to right.
  *
- * @param modifier layout modifier.
- * @param cards the cards in this column's order.
- * @param text the text of a card's tile.
- * @param state the board state, which decides each tile's colour.
- * @param isRight true for the translations column, which shows wrong picks in red instead of selections.
- * @param onPick called with a card's id when its tile is tapped.
+ * @param columns how many tiles stand side by side.
+ * @param spacing the gap between tiles, across and down.
+ * @param content the tiles.
  */
 @Composable
-private fun TileColumn(
-    modifier: Modifier,
-    cards: List<CardEntity>,
-    text: (CardEntity) -> String,
-    state: PairState,
-    isRight: Boolean = false,
-    onPick: (Long) -> Unit,
-) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        cards.forEach { card ->
-            PairTile(
-                text(card),
-                matched = card.id in state.matched,
-                selected = !isRight && state.left == card.id,
-                error = isRight && state.wrong == card.id,
-            ) { onPick(card.id) }
+private fun EqualTileGrid(columns: Int, spacing: Dp, content: @Composable () -> Unit) {
+    Layout(content) { measurables, constraints ->
+        val gap = spacing.roundToPx()
+        val width = (constraints.maxWidth - gap * (columns - 1)) / columns
+        val height = measurables.maxOfOrNull { it.maxIntrinsicHeight(width) } ?: 0
+        val tiles = measurables.map { it.measure(Constraints.fixed(width, height)) }
+        val rows = (tiles.size + columns - 1) / columns
+        layout(constraints.maxWidth, (rows * (height + gap) - gap).coerceAtLeast(0)) {
+            tiles.forEachIndexed { i, tile -> tile.place(i % columns * (width + gap), i / columns * (height + gap)) }
         }
     }
 }
@@ -132,7 +157,7 @@ private fun PairTile(text: String, matched: Boolean, selected: Boolean, error: B
         Modifier.fillMaxWidth().heightIn(min = TILE_MIN_HEIGHT).clickable(enabled = !matched, onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = background),
     ) {
-        Box(Modifier.fillMaxWidth().heightIn(min = TILE_MIN_HEIGHT).padding(8.dp), Alignment.Center) {
+        Box(Modifier.fillMaxSize().padding(8.dp), Alignment.Center) {
             Text(text, textAlign = TextAlign.Center, style = MaterialTheme.typography.titleSmall)
         }
     }
