@@ -2,10 +2,10 @@ package dev.denlogv.lexislearned.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -28,47 +28,53 @@ import dev.denlogv.lexislearned.data.Prefs
 import dev.denlogv.lexislearned.data.Provider
 
 /**
- * The settings for creating decks from EPUBs: provider, API key, model and the user's language.
+ * The settings for creating decks from EPUBs, in three groups: the provider with its key, the model and the user's language.
  *
  * @param prefs the current settings.
  * @param vm the settings view model.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun GenerationSection(prefs: Prefs, vm: SettingsViewModel) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Deck generation from EPUB", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
-        Hint("Chapters are sent to the AI provider you choose, using your own API key. The key is stored encrypted on this device only.")
+fun GenerationSettings(prefs: Prefs, vm: SettingsViewModel) {
+    Hint("Chapters are sent to the AI provider you choose, using your own API key. The key is stored encrypted on this device only.")
+    SettingsGroup("Provider") {
         ProviderAndKey(prefs, vm)
-        if (prefs.provider == Provider.OPENAI_COMPATIBLE) ServerAddress(prefs, vm)
+    }
+    SettingsGroup("Model") {
         ModelPicker(prefs, vm)
         if (prefs.provider == Provider.OPENAI_COMPATIBLE) ModelIdField(prefs, vm)
+    }
+    SettingsGroup("Your language") {
         OutlinedTextField(
             prefs.targetLang,
             vm.settings::setTargetLang,
             Modifier.fillMaxWidth(),
-            label = { Text("Your language (ISO code, e.g. ru, de, es)") },
+            label = { Text("ISO code, e.g. ru, de, es") },
             singleLine = true,
         )
     }
 }
 
 /**
- * The provider chips and the API key field with its buttons.
+ * The provider chips, the server address of a custom server, and the API key field with its buttons.
  *
  * @param prefs the current settings.
  * @param vm the settings view model.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ProviderAndKey(prefs: Prefs, vm: SettingsViewModel) {
     var key by remember(prefs.provider) { mutableStateOf("") }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Provider.entries.forEach { p -> FilterChip(prefs.provider == p, { vm.settings.setProvider(p) }, { Text(p.chip) }) }
     }
+    if (prefs.provider == Provider.OPENAI_COMPATIBLE) ServerAddress(prefs, vm)
     OutlinedTextField(
         key,
         { key = it },
         Modifier.fillMaxWidth(),
-        label = { Text(if (prefs.hasApiKey) "API key (saved — enter a new one to replace)" else "API key") },
+        label = { Text(if (prefs.hasApiKey) "API key (saved)" else "API key") },
+        supportingText = if (prefs.hasApiKey) ({ Text("Enter a new key to replace it") }) else null,
         singleLine = true,
         visualTransformation = PasswordVisualTransformation(),
     )
@@ -91,7 +97,6 @@ private fun ProviderAndKey(prefs: Prefs, vm: SettingsViewModel) {
 private fun ModelPicker(prefs: Prefs, vm: SettingsViewModel) {
     val ui by vm.models.collectAsState()
     var menu by remember { mutableStateOf(false) }
-    Text("Model", style = MaterialTheme.typography.labelLarge)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.weight(1f)) {
             OutlinedButton({ menu = true }, Modifier.fillMaxWidth(), enabled = ui.models.isNotEmpty()) {

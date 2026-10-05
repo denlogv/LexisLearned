@@ -1,16 +1,11 @@
 package dev.denlogv.lexislearned.ui.settings
 
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,43 +14,53 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import dev.denlogv.lexislearned.ai.Prompts
 import dev.denlogv.lexislearned.data.Prefs
 import dev.denlogv.lexislearned.data.Settings
 import dev.denlogv.lexislearned.domain.CefrLevel
 
 /**
- * The level, the card rules of that level and extra instructions for deck generation.
+ * The level, the card rules of that level and extra instructions for deck generation, each in a group of its own.
  *
  * @param prefs the current settings.
  * @param settings where changes are saved.
  */
 @Composable
-fun PromptSection(prefs: Prefs, settings: Settings) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Card prompt", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
-        Text("Your level", style = MaterialTheme.typography.labelLarge)
+fun PromptSettings(prefs: Prefs, settings: Settings) {
+    SettingsGroup("Your level") {
         LevelChips(prefs.level, settings::setLevel)
         Hint(
             "${prefs.level.label} · ${prefs.level.title}: cards cover vocabulary above this level. " +
-                "Each level has its own card rules below.",
+                "Each level has its own card rules.",
         )
+    }
+    SettingsGroup("Card rules") {
         RulesEditor(prefs, settings)
+    }
+    SettingsGroup("Extra instructions") {
         ExtraInstructions(prefs.extraInstructions, settings::setExtraInstructions)
     }
 }
 
 /**
- * A row of chips, one per level.
+ * The six levels as one row of equal buttons that always spans the available width, so none is cut off or needs scrolling.
  *
  * @param level the selected level.
  * @param onPick called with the tapped level.
  */
 @Composable
 fun LevelChips(level: CefrLevel, onPick: (CefrLevel) -> Unit) {
-    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        CefrLevel.entries.forEach { l -> FilterChip(level == l, { onPick(l) }, { Text(l.label) }) }
+    val levels = CefrLevel.entries
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        levels.forEachIndexed { i, l ->
+            SegmentedButton(
+                level == l,
+                { onPick(l) },
+                SegmentedButtonDefaults.itemShape(i, levels.size),
+                icon = {}, // no check mark: it would push the label off the centre of a narrow button
+                label = { Text(l.label, maxLines = 1) },
+            )
+        }
     }
 }
 

@@ -14,7 +14,10 @@ import dev.denlogv.lexislearned.ui.deck.DeckScreen
 import dev.denlogv.lexislearned.ui.deck.PartScreen
 import dev.denlogv.lexislearned.ui.epub.EpubScreen
 import dev.denlogv.lexislearned.ui.library.LibraryScreen
+import dev.denlogv.lexislearned.ui.settings.GenerationSettingsScreen
+import dev.denlogv.lexislearned.ui.settings.PromptSettingsScreen
 import dev.denlogv.lexislearned.ui.settings.SettingsScreen
+import dev.denlogv.lexislearned.ui.settings.StudySettingsScreen
 import dev.denlogv.lexislearned.ui.study.StudyScreen
 
 /** The navigation graph of the whole app; see [Routes] for the addresses. */
@@ -51,9 +54,30 @@ private fun NavGraphBuilder.libraryRoutes(nav: NavHostController) {
             onContinueEpub = { nav.navigate(Routes.EPUB_CONTINUE) },
         )
     }
-    composable(Routes.SETTINGS) { SettingsScreen(onBack = { nav.popBackStack() }) }
+    settingsRoutes(nav)
     epubScreen(nav, Routes.EPUB, continuing = false)
     epubScreen(nav, Routes.EPUB_CONTINUE, continuing = true)
+}
+
+/**
+ * Adds the settings overview and its pages.
+ *
+ * @receiver the graph being built.
+ * @param nav the controller used to move between screens.
+ */
+private fun NavGraphBuilder.settingsRoutes(nav: NavHostController) {
+    val back = { nav.popBackStack() }
+    composable(Routes.SETTINGS) {
+        SettingsScreen(
+            onBack = { back() },
+            onStudy = { nav.navigate(Routes.SETTINGS_STUDY) },
+            onGeneration = { nav.navigate(Routes.SETTINGS_GENERATION) },
+            onPrompt = { nav.navigate(Routes.SETTINGS_PROMPT) },
+        )
+    }
+    composable(Routes.SETTINGS_STUDY) { StudySettingsScreen { back() } }
+    composable(Routes.SETTINGS_GENERATION) { GenerationSettingsScreen { back() } }
+    composable(Routes.SETTINGS_PROMPT) { PromptSettingsScreen { back() } }
 }
 
 /**
@@ -69,7 +93,7 @@ private fun NavGraphBuilder.epubScreen(nav: NavHostController, route: String, co
         EpubScreen(
             continuing = continuing,
             onBack = { nav.popBackStack() },
-            onSettings = { nav.navigate(Routes.SETTINGS) },
+            onSettings = { nav.navigate(Routes.SETTINGS_GENERATION) }, // what is missing there is the provider or its key
         )
     }
 }

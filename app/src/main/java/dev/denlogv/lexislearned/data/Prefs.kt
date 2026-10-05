@@ -14,7 +14,7 @@ import dev.denlogv.lexislearned.domain.StudyMode
  */
 enum class Provider(val label: String, val chip: String, val defaultModel: String) {
     /** A server that speaks OpenAI's Chat Completions protocol, such as LM Studio or Ollama, at an address the user enters. */
-    OPENAI_COMPATIBLE("OpenAI-compatible server", "OpenAI-compatible", ""),
+    OPENAI_COMPATIBLE("OpenAI-compatible server", "OAI-compatible", ""),
 
     /** OpenAI. */
     OPENAI("OpenAI", "OpenAI", "gpt-4o-mini"),
