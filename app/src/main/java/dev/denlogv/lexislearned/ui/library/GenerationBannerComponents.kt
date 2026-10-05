@@ -1,6 +1,5 @@
 package dev.denlogv.lexislearned.ui.library
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -32,6 +31,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import dev.denlogv.lexislearned.ui.AppProgress
 import dev.denlogv.lexislearned.ui.ConfirmDialog
+import dev.denlogv.lexislearned.ui.cardClickable
 
 /**
  * The banner above the deck list that keeps deck generation visible while the user is elsewhere: progress while it runs,
@@ -46,7 +46,7 @@ import dev.denlogv.lexislearned.ui.ConfirmDialog
 fun GenerationBanner(banner: BannerUi, actions: BannerActions) {
     var confirming by remember { mutableStateOf(false) }
     var explaining by remember { mutableStateOf(false) }
-    val open = banner.deckId?.let { id -> Modifier.clickable { actions.onOpenDeck(id) } } ?: Modifier
+    val open = banner.deckId?.let { id -> Modifier.cardClickable { actions.onOpenDeck(id) } } ?: Modifier
     val onClose = if (banner.discardWarning != null) ({ confirming = true }) else actions.onDismiss // a paused run asks first
     Card(Modifier.fillMaxWidth().padding(16.dp).then(open)) {
         Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

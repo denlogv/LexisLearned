@@ -2,7 +2,6 @@ package dev.denlogv.lexislearned.ui.study
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.denlogv.lexislearned.data.CardEntity
 import dev.denlogv.lexislearned.domain.Direction
+import dev.denlogv.lexislearned.ui.cardClickable
 
 /** Rotation in degrees past which the back of a flipping card is shown. */
 private const val HALF_TURN = 90f
@@ -119,7 +119,7 @@ private fun FlipCard(rotation: Float, modifier: Modifier, onFlip: () -> Unit, fr
                 rotationY = rotation
                 cameraDistance = CAMERA_DISTANCE * density
             }
-            .clickable(onClick = onFlip),
+            .cardClickable(onClick = onFlip),
         colors = CardDefaults.cardColors(containerColor = container),
     ) {
         Box(

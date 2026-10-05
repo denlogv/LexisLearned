@@ -1,6 +1,5 @@
 package dev.denlogv.lexislearned.ui.library
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +37,7 @@ import dev.denlogv.lexislearned.format.DeckFormat
 import dev.denlogv.lexislearned.format.NativeFormat
 import dev.denlogv.lexislearned.ui.AppProgress
 import dev.denlogv.lexislearned.ui.ConfirmDialog
+import dev.denlogv.lexislearned.ui.cardClickable
 import dev.denlogv.lexislearned.ui.progressLabel
 
 /**
@@ -149,7 +149,7 @@ private fun EmptyLibrary(modifier: Modifier) {
  */
 @Composable
 private fun DeckCard(deck: DeckSummary, onClick: () -> Unit, onExport: (DeckFormat) -> Unit, onReset: () -> Unit, onDelete: () -> Unit) {
-    Card(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    Card(Modifier.fillMaxWidth().cardClickable(onClick = onClick)) {
         Row(Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp), verticalAlignment = Alignment.Top) {
             DeckCardText(deck, Modifier.weight(1f))
             DeckCardMenu(onExport, onReset, onDelete)

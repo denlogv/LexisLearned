@@ -1,7 +1,6 @@
 package dev.denlogv.lexislearned.ui.study
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +29,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.denlogv.lexislearned.data.CardEntity
 import dev.denlogv.lexislearned.domain.Direction
+import dev.denlogv.lexislearned.ui.cardClickable
 import kotlinx.coroutines.delay
 
 /** How long a wrong pick stays red, in milliseconds. */
@@ -154,7 +154,7 @@ private fun PairTile(text: String, matched: Boolean, selected: Boolean, error: B
     }
     val background by animateColorAsState(target, label = "tile")
     Card(
-        Modifier.fillMaxWidth().heightIn(min = TILE_MIN_HEIGHT).clickable(enabled = !matched, onClick = onClick),
+        Modifier.fillMaxWidth().heightIn(min = TILE_MIN_HEIGHT).cardClickable(enabled = !matched, onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = background),
     ) {
         Box(Modifier.fillMaxSize().padding(8.dp), Alignment.Center) {
