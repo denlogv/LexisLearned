@@ -74,6 +74,18 @@ class StepPresenterTest {
     }
 
     @Test
+    fun smallBoardsAreNotPaddedBeyondTheChosenPairSize() = runBlocking {
+        val cards = cards()
+        cards.values.drop(3).forEach { study.finishSession(it, Grade.GOOD, spaced = true) }
+        val three = cards.values.take(3)
+        val shown = StepPresenter(study, Direction.FORWARD, Random(1), pairSize = 3).present(
+            SessionPlanner.Step(StudyMode.PAIR, three.map { it.id }),
+            cards,
+        )
+        assertEquals(three, shown.cards)
+    }
+
+    @Test
     fun pairBoardStaysSmallWhenNothingWasStudiedYet() = runBlocking {
         val cards = cards()
         val two = cards.values.take(2)

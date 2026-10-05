@@ -68,6 +68,17 @@ class SessionPlannerTest {
     }
 
     @Test
+    fun pairStepsHoldAtMostThePairSize() {
+        val modes = setOf(StudyMode.PAIR)
+        for (size in listOf(3, 8)) {
+            val planner = SessionPlanner((1L..20L).toList(), modes, 1, Random(size), size)
+            val sizes = generateSequence { planner.next()?.also { planner.answered(it, emptyMap()) } }.map { it.cardIds.size }.toList()
+            assertEquals(20, sizes.sum())
+            assertEquals(size, sizes.max())
+        }
+    }
+
+    @Test
     fun modeOrderDiffersBetweenCards() {
         val (seen, _) = run(SessionPlanner((1L..12L).toList(), all, 1, Random(11)))
         assertTrue(seen.values.map { it.toList() }.toSet().size > 1)

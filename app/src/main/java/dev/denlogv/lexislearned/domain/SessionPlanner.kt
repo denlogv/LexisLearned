@@ -13,8 +13,15 @@ import kotlin.random.Random
  * @property modes the selected study modes.
  * @param rounds how many times each word goes through all selected modes.
  * @param random source of randomness for the order of steps.
+ * @param pairSize the most cards one Pair step contains.
  */
-class SessionPlanner(cardIds: List<Long>, val modes: Set<StudyMode>, rounds: Int, random: Random = Random.Default) {
+class SessionPlanner(
+    cardIds: List<Long>,
+    val modes: Set<StudyMode>,
+    rounds: Int,
+    random: Random = Random.Default,
+    pairSize: Int = DEFAULT_PAIR_SIZE,
+) {
     /**
      * One thing to show.
      *
@@ -36,7 +43,7 @@ class SessionPlanner(cardIds: List<Long>, val modes: Set<StudyMode>, rounds: Int
     private val gradedModes: Set<StudyMode> = if (modes == setOf(StudyMode.LEARN)) modes else modes - StudyMode.LEARN
     private val plans = cardIds.map { CardPlan(it, CardPlan.order(modes, rounds, random)) }
     private val byId = plans.associateBy { it.id }
-    private val picker = StepPicker(random)
+    private val picker = StepPicker(random, pairSize)
     private val finished = ArrayList<Outcome>()
 
     /** Steps still to do; a Pair step counts once per card in it. */
@@ -104,7 +111,7 @@ class SessionPlanner(cardIds: List<Long>, val modes: Set<StudyMode>, rounds: Int
 
     /** Constants of the planner. */
     companion object {
-        /** The most cards a Pair step contains. */
-        const val PAIR_BATCH = 5
+        /** The most cards a Pair step contains unless the learner chooses otherwise. */
+        const val DEFAULT_PAIR_SIZE = 6
     }
 }

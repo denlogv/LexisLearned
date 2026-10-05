@@ -20,6 +20,7 @@ class SettingsTest {
         val p = settings.prefs.value
         assertEquals(StudyMode.entries.toSet(), p.modes)
         assertEquals(1, p.sessionsToComplete)
+        assertEquals(6, p.pairSize)
         assertFalse(p.hasApiKey)
         assertEquals(Provider.ANTHROPIC.defaultModel, p.model)
     }
@@ -39,6 +40,16 @@ class SettingsTest {
         assertEquals(5, p.rounds)
         assertEquals(1, p.sessionsToComplete)
         assertFalse(p.spaceSessions)
+    }
+
+    @Test
+    fun pairSizeIsSavedAndClamped() {
+        settings.setPairSize(9)
+        assertEquals(9, settings.prefs.value.pairSize)
+        settings.setPairSize(1)
+        assertEquals(3, settings.prefs.value.pairSize)
+        settings.setPairSize(99)
+        assertEquals(12, settings.prefs.value.pairSize)
     }
 
     @Test

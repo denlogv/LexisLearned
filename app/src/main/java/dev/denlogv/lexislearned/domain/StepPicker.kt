@@ -9,8 +9,9 @@ import kotlin.random.Random
  * and Pair (a multi-card step) waits until at least two cards are ready for it.
  *
  * @param random source of randomness for the choice.
+ * @param pairSize the most cards one Pair step contains.
  */
-internal class StepPicker(private val random: Random) {
+internal class StepPicker(private val random: Random, private val pairSize: Int) {
     private var lastCard: Long? = null
     private var lastMode: StudyMode? = null
 
@@ -57,10 +58,10 @@ internal class StepPicker(private val random: Random) {
      *
      * @param pick the card that was chosen.
      * @param pairReady all cards whose next step is Pair.
-     * @return the ids of up to [SessionPlanner.PAIR_BATCH] cards, starting with [pick].
+     * @return the ids of up to [pairSize] cards, starting with [pick].
      */
     private fun pairBatch(pick: CardPlan, pairReady: List<CardPlan>): List<Long> {
-        val others = pairReady.filter { it !== pick }.shuffled(random).take(SessionPlanner.PAIR_BATCH - 1)
+        val others = pairReady.filter { it !== pick }.shuffled(random).take(pairSize - 1)
         return (listOf(pick) + others).map { it.id }
     }
 }

@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.denlogv.lexislearned.data.PAIR_SIZE_RANGE
 import dev.denlogv.lexislearned.data.Prefs
 import dev.denlogv.lexislearned.data.Settings
 import kotlin.math.roundToInt
@@ -41,13 +42,7 @@ fun StudySection(prefs: Prefs, settings: Settings) {
         Slider(prefs.sessionSize.toFloat(), { settings.setSessionSize(it.roundToInt()) }, valueRange = 3f..30f, steps = 26)
         Text("New cards per session: ${prefs.newPerSession}")
         Slider(prefs.newPerSession.toFloat(), { settings.setNewPerSession(it.roundToInt()) }, valueRange = 0f..20f, steps = 19)
-        Stepper(
-            "Rounds per session",
-            prefs.rounds,
-            1..5,
-            settings::setRounds,
-            "How many times each word goes through all selected modes in one session.",
-        )
+        BoardSteppers(prefs, settings)
         Stepper(
             "Sessions to complete a word",
             prefs.sessionsToComplete,
@@ -58,6 +53,30 @@ fun StudySection(prefs: Prefs, settings: Settings) {
         SpacingSwitch(prefs.spaceSessions, settings::setSpaceSessions)
         Hint(sessionSummary(prefs))
     }
+}
+
+/**
+ * The settings for the length of a session: rounds and the size of the Pair board.
+ *
+ * @param prefs the current settings.
+ * @param settings where changes are saved.
+ */
+@Composable
+private fun BoardSteppers(prefs: Prefs, settings: Settings) {
+    Stepper(
+        "Rounds per session",
+        prefs.rounds,
+        1..5,
+        settings::setRounds,
+        "How many times each word goes through all selected modes in one session.",
+    )
+    Stepper(
+        "Pairs per Pair board",
+        prefs.pairSize,
+        PAIR_SIZE_RANGE,
+        settings::setPairSize,
+        "How many words are matched at once in Pair mode.",
+    )
 }
 
 /**

@@ -2,6 +2,7 @@ package dev.denlogv.lexislearned.data
 
 import dev.denlogv.lexislearned.domain.CefrLevel
 import dev.denlogv.lexislearned.domain.Direction
+import dev.denlogv.lexislearned.domain.SessionPlanner
 import dev.denlogv.lexislearned.domain.StudyMode
 
 /**
@@ -30,6 +31,7 @@ enum class Provider(val label: String, val chip: String, val defaultModel: Strin
  * @property sessionSize how many words one session contains.
  * @property newPerSession how many never-studied words a session may add.
  * @property rounds how many times each word goes through all selected modes within one session.
+ * @property pairSize the most word pairs on one Pair board.
  * @property sessionsToComplete how many successful sessions make a word completed.
  * @property spaceSessions whether a word's sessions are spaced over days instead of allowing the next one right away.
  * @property provider the AI provider used to generate decks.
@@ -47,6 +49,7 @@ data class Prefs(
     val sessionSize: Int = 10,
     val newPerSession: Int = 5,
     val rounds: Int = 1,
+    val pairSize: Int = SessionPlanner.DEFAULT_PAIR_SIZE,
     val sessionsToComplete: Int = 1,
     val spaceSessions: Boolean = true,
     val provider: Provider = Provider.ANTHROPIC,
@@ -64,3 +67,6 @@ data class Prefs(
     /** Whether the current provider has everything a request needs: a key, and a valid address for a custom server. */
     val ready: Boolean get() = hasApiKey && (provider != Provider.OPENAI_COMPATIBLE || (endpoint != null && model.isNotBlank()))
 }
+
+/** How many word pairs one Pair board may hold. */
+val PAIR_SIZE_RANGE: IntRange = 3..12

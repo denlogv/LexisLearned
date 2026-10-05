@@ -23,8 +23,14 @@ class PresentedStep(val cards: List<CardEntity>, val decoyIds: Set<Long>, val op
  * @param study where filler cards and wrong answers come from.
  * @param direction which side of a card is the question.
  * @param random shuffles the answer choices.
+ * @param pairSize the most pairs on a Pair board; a board is never padded beyond it.
  */
-class StepPresenter(private val study: StudyRepository, private val direction: Direction, private val random: Random) {
+class StepPresenter(
+    private val study: StudyRepository,
+    private val direction: Direction,
+    private val random: Random,
+    private val pairSize: Int = SessionPlanner.DEFAULT_PAIR_SIZE,
+) {
     /**
      * Prepares a step.
      *
@@ -34,20 +40,23 @@ class StepPresenter(private val study: StudyRepository, private val direction: D
      */
     suspend fun present(step: SessionPlanner.Step, cards: Map<Long, CardEntity>): PresentedStep {
         val real = step.cardIds.mapNotNull { cards[it] }
-        val fillers = if (step.mode == StudyMode.PAIR && real.size < MIN_PAIR_TILES) fillersFor(real) else emptyList()
+        val fillers = if (step.mode == StudyMode.PAIR && real.size < minTiles) fillersFor(real) else emptyList()
         val options = if (step.mode == StudyMode.SELECT) selectOptions(real.first()) else emptyList()
         return PresentedStep(real + fillers, fillers.map { it.id }.toSet(), options)
     }
 
+    /** Smallest Pair board: [MIN_PAIR_TILES], or less when the learner chose smaller boards. */
+    private val minTiles: Int get() = minOf(MIN_PAIR_TILES, pairSize)
+
     /**
-     * Picks filler cards so the Pair board has at least [MIN_PAIR_TILES] tiles with distinct answers.
+     * Picks filler cards so the Pair board has at least [minTiles] tiles with distinct answers.
      *
      * @param real the cards that are really being studied.
      * @return the fillers: words that were studied before, from the same chapter where possible.
      */
     private suspend fun fillersFor(real: List<CardEntity>): List<CardEntity> {
         val answers = real.map { it.answer(direction) }.toSet()
-        val missing = MIN_PAIR_TILES - real.size
+        val missing = minTiles - real.size
         return study.learnedFillers(real.first(), real.map { it.id }, missing * CANDIDATE_FACTOR)
             .distinctBy { it.answer(direction) }
             .filter { it.answer(direction) !in answers }

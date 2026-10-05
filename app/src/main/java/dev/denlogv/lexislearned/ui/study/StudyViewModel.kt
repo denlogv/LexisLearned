@@ -41,7 +41,7 @@ class StudyViewModel(
     private val chapterId: Long? = handle.get<Long>("chapterId")?.takeIf { it >= 0 }
     private val partId: Long? = handle.get<Long>("partId")?.takeIf { it >= 0 }
     private val prefs: Prefs = settings.prefs.value
-    private val presenter = StepPresenter(study, prefs.direction, random)
+    private val presenter = StepPresenter(study, prefs.direction, random, prefs.pairSize)
     private val cards = HashMap<Long, CardEntity>()
     private var planner: SessionPlanner? = null
     private var step: SessionPlanner.Step? = null
@@ -101,7 +101,7 @@ class StudyViewModel(
     private suspend fun start() {
         val list = study.sessionCards(deckId, chapterId, partId, prefs.sessionsToComplete, prefs.sessionSize, prefs.newPerSession)
         list.forEach { cards[it.id] = it }
-        planner = SessionPlanner(list.map { it.id }, prefs.modes, prefs.rounds, random)
+        planner = SessionPlanner(list.map { it.id }, prefs.modes, prefs.rounds, random, prefs.pairSize)
         _ui.value = StudyUi(loading = false, totalWords = list.size)
         advance()
     }

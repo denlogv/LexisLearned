@@ -60,6 +60,13 @@ class Settings(private val sp: SharedPreferences, private val secrets: Secrets =
     fun setRounds(n: Int) = edit { putInt(ROUNDS, n.coerceIn(MIN_ROUNDS, MAX_ROUNDS)) }
 
     /**
+     * Sets how many word pairs a Pair board holds at most.
+     *
+     * @param n the number of pairs, limited to [PAIR_SIZE_RANGE].
+     */
+    fun setPairSize(n: Int) = edit { putInt(PAIR_SIZE, n.coerceIn(PAIR_SIZE_RANGE)) }
+
+    /**
      * Sets how many successful sessions complete a word.
      *
      * @param n the number of sessions, limited to 1 to 10.
@@ -175,6 +182,7 @@ class Settings(private val sp: SharedPreferences, private val secrets: Secrets =
         sessionSize = sp.getInt(SESSION_SIZE, base.sessionSize),
         newPerSession = sp.getInt(NEW_PER_SESSION, base.newPerSession),
         rounds = sp.getInt(ROUNDS, base.rounds),
+        pairSize = sp.getInt(PAIR_SIZE, base.pairSize).coerceIn(PAIR_SIZE_RANGE),
         sessionsToComplete = sp.getInt(SESSIONS_TO_COMPLETE, base.sessionsToComplete),
         spaceSessions = sp.getBoolean(SPACE_SESSIONS, base.spaceSessions),
     )
@@ -217,6 +225,7 @@ class Settings(private val sp: SharedPreferences, private val secrets: Secrets =
         const val SESSION_SIZE = "sessionSize"
         const val NEW_PER_SESSION = "newPerSession"
         const val ROUNDS = "rounds"
+        const val PAIR_SIZE = "pairSize"
         const val SESSIONS_TO_COMPLETE = "sessionsToComplete"
         const val SPACE_SESSIONS = "spaceSessions"
         const val PROVIDER = "provider"
