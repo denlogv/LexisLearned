@@ -8,12 +8,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -53,10 +53,10 @@ fun LearnCard(card: CardEntity, d: Direction, showExamples: Boolean, exposure: B
     var flipped by remember { mutableStateOf(false) }
     var revealed by remember { mutableStateOf(false) }
     val rotation by animateFloatAsState(if (flipped) FLIPPED else 0f, tween(FLIP_MS), label = "flip")
-    Column(Modifier.fillMaxSize()) {
+    val face: @Composable (Modifier) -> Unit = { modifier ->
         FlipCard(
             rotation,
-            Modifier.weight(1f),
+            modifier,
             onFlip = {
                 flipped = !flipped
                 revealed = true
@@ -64,9 +64,38 @@ fun LearnCard(card: CardEntity, d: Direction, showExamples: Boolean, exposure: B
             front = { CardFront(card, d, showExamples, revealed) },
             back = { CardBack(card, d, showExamples) },
         )
-        LearnActions(revealed, exposure, actions)
+    }
+    CardWithActions(face) { vertical -> LearnActions(revealed, exposure, actions, vertical) }
+}
+
+/**
+ * Places the card and its buttons: the buttons below the card, or beside it in landscape, where a card below the top bar and
+ * above a row of buttons would be too short to read.
+ *
+ * @param card the card; gets the modifier that sizes it.
+ * @param actions the buttons; told whether they are stacked beside the card.
+ */
+@Composable
+private fun CardWithActions(card: @Composable (Modifier) -> Unit, actions: @Composable (Boolean) -> Unit) {
+    if (isLandscape()) {
+        Row(
+            Modifier.fillMaxSize().padding(bottom = 16.dp), // nothing below the card in landscape keeps it off the screen's edge
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            card(Modifier.weight(1f).fillMaxHeight())
+            Box(Modifier.width(SIDE_ACTIONS_WIDTH)) { actions(true) }
+        }
+    } else {
+        Column(Modifier.fillMaxSize()) {
+            card(Modifier.weight(1f))
+            actions(false)
+        }
     }
 }
+
+/** Width of the button column beside the card in landscape. */
+private val SIDE_ACTIONS_WIDTH = 180.dp
 
 /** How long flipping a card takes, in milliseconds. */
 private const val FLIP_MS = 350
@@ -113,8 +142,7 @@ private const val CAMERA_DISTANCE = 12f
  */
 @Composable
 private fun CardFront(card: CardEntity, d: Direction, showExamples: Boolean, revealed: Boolean) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        PromptText(card, d)
+    CardFace(card.prompt(d), card.promptHint(d), otherWord = card.answer(d)) {
         if (showExamples) card.promptExample(d)?.let { Example(it) }
         Hint(if (revealed) "Tap to flip" else "Tap to reveal")
     }
@@ -129,9 +157,7 @@ private fun CardFront(card: CardEntity, d: Direction, showExamples: Boolean, rev
  */
 @Composable
 private fun CardBack(card: CardEntity, d: Direction, showExamples: Boolean) {
-    Column(Modifier.verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(card.answer(d), style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
-        card.answerHint(d)?.let { Text("[$it]", style = MaterialTheme.typography.bodyLarge) }
+    CardFace(card.answer(d), card.answerHint(d), otherWord = card.prompt(d)) {
         if (showExamples) card.answerExample(d)?.let { Example(it) }
         Hint("Tap to flip back", MaterialTheme.colorScheme.onSecondaryContainer)
     }
@@ -159,20 +185,21 @@ private fun Hint(text: String, color: androidx.compose.ui.graphics.Color = Mater
 }
 
 /**
- * The buttons under the card: nothing until it was flipped, then rating buttons or "I know it" and "Next".
+ * The buttons next to the card: nothing until it was flipped, then rating buttons or "I know it" and "Next".
  *
  * @param revealed whether the card was flipped at least once.
  * @param exposure whether the step only introduces the word.
  * @param actions what the buttons do.
+ * @param vertical whether the buttons are stacked beside the card (landscape) instead of in a row below it.
  */
 @Composable
-private fun LearnActions(revealed: Boolean, exposure: Boolean, actions: StudyActions) {
+private fun LearnActions(revealed: Boolean, exposure: Boolean, actions: StudyActions, vertical: Boolean) {
     when {
-        !revealed -> Spacer(Modifier.height(80.dp))
-        exposure -> Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(actions.onKnown, Modifier.weight(1f)) { Text("I know it") }
-            Button(actions.onIntroduced, Modifier.weight(1f)) { Text("Next") }
+        !revealed -> if (!vertical) Spacer(Modifier.height(80.dp))
+        exposure -> ButtonGroup(vertical) { size ->
+            OutlinedButton(actions.onKnown, size) { Text("I know it") }
+            Button(actions.onIntroduced, size) { Text("Next") }
         }
-        else -> GradeButtons(actions.onGrade)
+        else -> GradeButtons(actions.onGrade, vertical)
     }
 }

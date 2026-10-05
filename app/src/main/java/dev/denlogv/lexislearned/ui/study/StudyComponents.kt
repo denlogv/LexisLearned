@@ -6,14 +6,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.denlogv.lexislearned.data.CardEntity
 import dev.denlogv.lexislearned.domain.Direction
@@ -47,16 +44,21 @@ fun StudyViewModel.actions(): StudyActions = StudyActions(::answer, ::introduced
  * @param d which side is the question.
  */
 @Composable
-fun PromptText(card: CardEntity, d: Direction) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(card.prompt(d), style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
-        card.promptHint(d)?.let {
-            Text(
-                "[$it]",
-                Modifier.padding(top = 4.dp),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+fun PromptText(card: CardEntity, d: Direction) = WordBlock(card.prompt(d), card.promptHint(d))
+
+/**
+ * Lays out a group of buttons: side by side below the content, or stacked beside it in landscape.
+ *
+ * @param vertical true to stack the buttons.
+ * @param content the buttons; each gets the modifier that sizes it within the group.
+ */
+@Composable
+fun ButtonGroup(vertical: Boolean, content: @Composable (Modifier) -> Unit) {
+    if (vertical) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) { content(Modifier.fillMaxWidth()) }
+    } else {
+        Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            content(Modifier.weight(1f))
         }
     }
 }
@@ -65,12 +67,11 @@ fun PromptText(card: CardEntity, d: Direction) {
  * The three buttons that rate how well a word was remembered.
  *
  * @param onGrade called with the chosen grade.
+ * @param vertical whether the buttons are stacked.
  */
 @Composable
-fun GradeButtons(onGrade: (Grade) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton({ onGrade(Grade.AGAIN) }, Modifier.weight(1f)) { Text("Forgot") }
-        FilledTonalButton({ onGrade(Grade.GOOD) }, Modifier.weight(1f)) { Text("Got it") }
-        FilledTonalButton({ onGrade(Grade.EASY) }, Modifier.weight(1f)) { Text("Easy") }
-    }
+fun GradeButtons(onGrade: (Grade) -> Unit, vertical: Boolean = false) = ButtonGroup(vertical) { size ->
+    OutlinedButton({ onGrade(Grade.AGAIN) }, size) { Text("Forgot") }
+    FilledTonalButton({ onGrade(Grade.GOOD) }, size) { Text("Got it") }
+    FilledTonalButton({ onGrade(Grade.EASY) }, size) { Text("Easy") }
 }
