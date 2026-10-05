@@ -7,7 +7,7 @@ import dev.denlogv.lexislearned.domain.Grade
  * The state of a Type step: the learner types the answer, checks it, then moves on.
  *
  * @property text what was typed so far.
- * @property result null until the answer is checked, then whether it was correct.
+ * @property result null until the answer is checked or given up, then whether it was correct; giving up counts as wrong.
  */
 data class TypeState(val text: String = "", val result: Boolean? = null) {
     /** True once the answer has been checked. */
@@ -34,4 +34,11 @@ data class TypeState(val text: String = "", val result: Boolean? = null) {
      * @return the new state with the result.
      */
     fun check(expected: String): TypeState = if (checked || text.isBlank()) this else copy(result = Answers.isCorrect(text, expected))
+
+    /**
+     * Gives up on the question: the answer is revealed and counts as wrong. Does nothing once the step is checked.
+     *
+     * @return the new state with a wrong result.
+     */
+    fun giveUp(): TypeState = if (checked) this else copy(result = false)
 }

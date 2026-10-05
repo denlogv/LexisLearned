@@ -62,7 +62,7 @@ fun TypeCard(card: CardEntity, d: Direction, onGrade: (Grade) -> Unit) {
         )
         TypeFeedback(state, card, d)
         Button(submit, Modifier.fillMaxWidth(), enabled = state.canSubmit) { Text(if (state.checked) "Next" else "Check") }
-        if (!state.checked) OutlinedButton({ onGrade(Grade.AGAIN) }, Modifier.fillMaxWidth()) { Text("I don't know") }
+        if (!state.checked) OutlinedButton({ state = state.giveUp() }, Modifier.fillMaxWidth()) { Text("I don't know") }
     }
 }
 

@@ -55,6 +55,18 @@ class StudyStateTest {
     }
 
     @Test
+    fun givingUpRevealsTheAnswerAndCountsAsWrong() {
+        val gaveUp = TypeState().giveUp()
+        assertTrue(gaveUp.checked)
+        assertEquals(false, gaveUp.result)
+        assertEquals(Grade.AGAIN, gaveUp.grade)
+        assertTrue(gaveUp.canSubmit)
+        assertEquals("", gaveUp.withText("x").text)
+        val typed = TypeState("dog").check("dog")
+        assertEquals(typed, typed.giveUp())
+    }
+
+    @Test
     fun blankAnswerIsNotChecked() {
         assertEquals(TypeState("  "), TypeState("  ").check("x"))
     }
