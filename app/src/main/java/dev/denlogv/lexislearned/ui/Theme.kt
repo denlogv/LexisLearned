@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 /**
@@ -18,7 +19,8 @@ import androidx.compose.ui.platform.LocalContext
  */
 @Composable
 fun LexisLearnedTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = colorScheme(isSystemInDarkTheme()), content = content)
+    val dark = isSystemInDarkTheme()
+    MaterialTheme(colorScheme = colorScheme(dark).withRedErrors(dark), content = content)
 }
 
 /**
@@ -36,3 +38,28 @@ private fun colorScheme(dark: Boolean): ColorScheme {
         else -> lightColorScheme()
     }
 }
+
+/** Red of error text and outlines on a light background. */
+private val ErrorOnLight = Color(0xFFC62828)
+
+/** Red of error text and outlines on a dark background; lighter so it stays readable. */
+private val ErrorOnDark = Color(0xFFEF5350)
+
+/** Solid red behind wrong answers, with white text on it, in both modes. */
+private val ErrorFill = Color(0xFFC62828)
+
+/**
+ * Gives the scheme a real red for errors. The dynamic and default dark schemes use a pale pink, which does not read as a
+ * mistake, and the red should be the same on every screen, so it is set once here and everything that shows an error uses
+ * the theme's error colours.
+ *
+ * @receiver the scheme to adjust.
+ * @param dark whether the scheme is a dark one.
+ * @return the scheme with red error colours.
+ */
+private fun ColorScheme.withRedErrors(dark: Boolean): ColorScheme = copy(
+    error = if (dark) ErrorOnDark else ErrorOnLight,
+    onError = Color.White,
+    errorContainer = ErrorFill,
+    onErrorContainer = Color.White,
+)
