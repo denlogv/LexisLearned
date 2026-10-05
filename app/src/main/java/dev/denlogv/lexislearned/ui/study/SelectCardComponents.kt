@@ -5,9 +5,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -42,16 +46,26 @@ private const val CORRECT_ALPHA = 0.85f
 fun SelectCard(card: CardEntity, d: Direction, options: List<String>, onGrade: (Grade) -> Unit) {
     val correct = card.answer(d)
     var picked by remember { mutableStateOf<String?>(null) }
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Box(Modifier.weight(1f).fillMaxWidth(), Alignment.Center) { PromptText(card, d) }
-        options.forEach { option ->
-            OptionCard(option, optionState(option, picked, correct)) { picked = option }
-        }
+    val choices: @Composable () -> Unit = {
+        options.forEach { option -> OptionCard(option, optionState(option, picked, correct)) { picked = option } }
         Button(
             { onGrade(if (picked == correct) Grade.GOOD else Grade.AGAIN) },
             Modifier.fillMaxWidth().padding(bottom = 16.dp),
             enabled = picked != null,
         ) { Text("Next") }
+    }
+    if (isLandscape()) {
+        Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(Modifier.weight(1f).fillMaxHeight(), Alignment.Center) { PromptText(card, d) }
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                choices()
+            }
+        }
+    } else {
+        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.weight(1f).fillMaxWidth(), Alignment.Center) { PromptText(card, d) }
+            choices()
+        }
     }
 }
 
