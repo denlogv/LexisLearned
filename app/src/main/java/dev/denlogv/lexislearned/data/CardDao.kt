@@ -83,6 +83,34 @@ interface CardDao {
     suspend fun randomCardsExcluding(deckId: Long, excludeIds: List<Long>, limit: Int): List<CardEntity>
 
     /**
+     * Random words of a chapter that were studied before, for the filler tiles of the Pair board.
+     *
+     * @param chapterId the chapter.
+     * @param excludeIds cards that must not be returned.
+     * @param limit the most cards to return.
+     * @return up to [limit] random studied cards.
+     */
+    @Query(
+        "SELECT * FROM cards WHERE chapterId = :chapterId AND id NOT IN (:excludeIds) " +
+            "AND (dueAt IS NOT NULL OR sessionsDone > 0) ORDER BY RANDOM() LIMIT :limit",
+    )
+    suspend fun randomLearnedInChapter(chapterId: Long, excludeIds: List<Long>, limit: Int): List<CardEntity>
+
+    /**
+     * Random words of a deck that were studied before, used when the chapter has too few.
+     *
+     * @param deckId the deck.
+     * @param excludeIds cards that must not be returned.
+     * @param limit the most cards to return.
+     * @return up to [limit] random studied cards.
+     */
+    @Query(
+        "SELECT * FROM cards WHERE deckId = :deckId AND id NOT IN (:excludeIds) " +
+            "AND (dueAt IS NOT NULL OR sessionsDone > 0) ORDER BY RANDOM() LIMIT :limit",
+    )
+    suspend fun randomLearnedInDeck(deckId: Long, excludeIds: List<Long>, limit: Int): List<CardEntity>
+
+    /**
      * The study state of the cards of a deck that have any, keyed by source id.
      *
      * @param deckId the deck.

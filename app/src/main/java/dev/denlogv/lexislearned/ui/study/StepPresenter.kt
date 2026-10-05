@@ -17,8 +17,8 @@ import kotlin.random.Random
 class PresentedStep(val cards: List<CardEntity>, val decoyIds: Set<Long>, val options: List<String>)
 
 /**
- * Prepares a planned step for display: looks up its cards, pads a small Pair board with filler cards and builds the answer
- * choices for Select.
+ * Prepares a planned step for display: looks up its cards, pads a small Pair board with already studied filler cards and
+ * builds the answer choices for Select.
  *
  * @param study where filler cards and wrong answers come from.
  * @param direction which side of a card is the question.
@@ -43,12 +43,12 @@ class StepPresenter(private val study: StudyRepository, private val direction: D
      * Picks filler cards so the Pair board has at least [MIN_PAIR_TILES] tiles with distinct answers.
      *
      * @param real the cards that are really being studied.
-     * @return the fillers, from the same chapter where possible.
+     * @return the fillers: words that were studied before, from the same chapter where possible.
      */
     private suspend fun fillersFor(real: List<CardEntity>): List<CardEntity> {
         val answers = real.map { it.answer(direction) }.toSet()
         val missing = MIN_PAIR_TILES - real.size
-        return study.decoys(real.first(), real.map { it.id }, missing * CANDIDATE_FACTOR)
+        return study.learnedFillers(real.first(), real.map { it.id }, missing * CANDIDATE_FACTOR)
             .distinctBy { it.answer(direction) }
             .filter { it.answer(direction) !in answers }
             .take(missing)

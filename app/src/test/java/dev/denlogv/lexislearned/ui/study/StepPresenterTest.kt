@@ -5,6 +5,7 @@ import dev.denlogv.lexislearned.data.DeckStorage
 import dev.denlogv.lexislearned.data.StudyRepository
 import dev.denlogv.lexislearned.data.memoryDb
 import dev.denlogv.lexislearned.domain.Direction
+import dev.denlogv.lexislearned.domain.Grade
 import dev.denlogv.lexislearned.domain.SessionPlanner
 import dev.denlogv.lexislearned.domain.StudyMode
 import dev.denlogv.lexislearned.sampleDeck
@@ -43,6 +44,7 @@ class StepPresenterTest {
     fun smallPairBoardsArePaddedWithFillers() = runBlocking {
         val cards = cards()
         val two = cards.values.take(2)
+        cards.values.drop(2).forEach { study.finishSession(it, Grade.GOOD, spaced = true) }
         val shown = StepPresenter(study, Direction.REVERSE, Random(1)).present(
             SessionPlanner.Step(
                 StudyMode.PAIR,
@@ -56,6 +58,31 @@ class StepPresenterTest {
         assertEquals(2, shown.decoyIds.size)
         assertTrue(shown.options.isEmpty())
         assertTrue(shown.cards.map { it.answer(Direction.REVERSE) }.let { it.distinct().size == it.size })
+    }
+
+    @Test
+    fun pairFillersAreNeverWordsThatWereNotStudiedYet() = runBlocking {
+        val cards = cards()
+        val studied = cards.values.drop(2).take(3).onEach { study.finishSession(it, Grade.GOOD, spaced = true) }
+        val two = cards.values.take(2)
+        val shown = StepPresenter(study, Direction.FORWARD, Random(1)).present(
+            SessionPlanner.Step(StudyMode.PAIR, two.map { it.id }),
+            cards,
+        )
+        assertEquals(2, shown.decoyIds.size)
+        assertTrue(shown.decoyIds.all { id -> studied.any { it.id == id } })
+    }
+
+    @Test
+    fun pairBoardStaysSmallWhenNothingWasStudiedYet() = runBlocking {
+        val cards = cards()
+        val two = cards.values.take(2)
+        val shown = StepPresenter(study, Direction.FORWARD, Random(1)).present(
+            SessionPlanner.Step(StudyMode.PAIR, two.map { it.id }),
+            cards,
+        )
+        assertEquals(two, shown.cards)
+        assertTrue(shown.decoyIds.isEmpty())
     }
 
     @Test

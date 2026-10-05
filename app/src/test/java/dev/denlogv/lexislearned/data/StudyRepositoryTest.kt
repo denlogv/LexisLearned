@@ -93,4 +93,26 @@ class StudyRepositoryTest {
         assertEquals("b", more.first().sourceId)
         assertTrue(study.decoys(a, emptyList(), 1).isNotEmpty())
     }
+
+    @Test
+    fun learnedFillersAreOnlyStudiedWordsFromTheChapterFirstThenTheDeck() = runBlocking {
+        val deck = Deck(
+            "d",
+            "T",
+            chapters = listOf(
+                Chapter("c1", "One", cards = listOf(simpleCard("a"), simpleCard("b"), simpleCard("c"))),
+                Chapter("c2", "Two", cards = listOf(simpleCard("d"), simpleCard("e"))),
+            ),
+        )
+        val cards = cardsOf(storage.import(deck))
+        fun card(source: String) = cards.first { it.sourceId == source }
+        val a = card("a")
+        assertTrue(study.learnedFillers(a, listOf(a.id), 3).isEmpty())
+        study.finishSession(card("b"), Grade.GOOD, spaced = true)
+        study.finishSession(card("d"), Grade.GOOD, spaced = true)
+        assertEquals(listOf("b"), study.learnedFillers(a, listOf(a.id), 1).map { it.sourceId })
+        assertEquals(setOf("b", "d"), study.learnedFillers(a, listOf(a.id), 5).map { it.sourceId }.toSet())
+        assertTrue(study.learnedFillers(a, listOf(a.id, card("b").id, card("d").id), 5).isEmpty())
+        assertEquals(listOf("b"), study.learnedFillers(a, emptyList(), 1).map { it.sourceId })
+    }
 }
