@@ -49,3 +49,38 @@ fun modelMenuLabel(model: ModelInfo): String = if (model.label == model.id) mode
  */
 fun rulesFieldLabel(levelLabel: String, customised: Boolean): String =
     "Card rules for $levelLabel" + if (customised) " (customised)" else " (default)"
+
+/**
+ * The one-line summary of the study settings on the settings overview.
+ *
+ * @param prefs the settings.
+ * @return for example "10 cards per session · 5 new · 1 round · pairs of 6".
+ */
+fun studySummary(prefs: Prefs): String =
+    "${plural(prefs.sessionSize, "card")} per session · ${prefs.newPerSession} new · ${plural(prefs.rounds, "round")} · " +
+        "pairs of ${prefs.pairSize}"
+
+/**
+ * The one-line summary of the deck generation settings on the settings overview.
+ *
+ * @param prefs the settings.
+ * @return the provider and the model in use, and whether a key is saved, for example "Claude · claude-haiku-4-5 · key saved".
+ */
+fun generationSummary(prefs: Prefs): String = listOfNotNull(
+    prefs.provider.chip,
+    prefs.model.takeIf { it.isNotBlank() },
+    if (prefs.hasApiKey) "key saved" else "no key yet",
+).joinToString(" · ")
+
+/**
+ * The one-line summary of the level and card prompt settings on the settings overview.
+ *
+ * @param prefs the settings.
+ * @return the level, whether its rules were edited and whether there are extra instructions, for example
+ * "B1 · customised rules · extra instructions".
+ */
+fun promptSummary(prefs: Prefs): String = listOfNotNull(
+    prefs.level.label,
+    if (prefs.customRules.containsKey(prefs.level)) "customised rules" else "default rules",
+    "extra instructions".takeIf { prefs.extraInstructions.isNotBlank() },
+).joinToString(" · ")

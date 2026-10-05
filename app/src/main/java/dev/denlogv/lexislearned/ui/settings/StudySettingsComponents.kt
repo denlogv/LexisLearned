@@ -1,7 +1,7 @@
 package dev.denlogv.lexislearned.ui.settings
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +18,18 @@ import dev.denlogv.lexislearned.data.Prefs
 import dev.denlogv.lexislearned.data.Settings
 import kotlin.math.roundToInt
 
+/** How many cards one study session may hold. */
+private val SESSION_SIZE_RANGE = 3..30
+
+/** How many unseen cards one study session may add. */
+private val NEW_PER_SESSION_RANGE = 0..20
+
+/** How many times a session may repeat each word. */
+private val ROUNDS_RANGE = 1..5
+
+/** How many successful sessions a word may need to count as completed. */
+private val SESSIONS_TO_COMPLETE_RANGE = 1..10
+
 /**
  * A small grey explanation under a setting.
  *
@@ -29,54 +41,69 @@ fun Hint(text: String) {
 }
 
 /**
- * The settings that shape a study session.
+ * The settings that shape a study session, in three groups: how long it is, the Pair board and when a word counts as learned.
  *
  * @param prefs the current settings.
  * @param settings where changes are saved.
  */
 @Composable
-fun StudySection(prefs: Prefs, settings: Settings) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Study sessions", style = MaterialTheme.typography.titleMedium)
-        Text("Cards per session: ${prefs.sessionSize}")
-        Slider(prefs.sessionSize.toFloat(), { settings.setSessionSize(it.roundToInt()) }, valueRange = 3f..30f, steps = 26)
-        Text("New cards per session: ${prefs.newPerSession}")
-        Slider(prefs.newPerSession.toFloat(), { settings.setNewPerSession(it.roundToInt()) }, valueRange = 0f..20f, steps = 19)
-        BoardSteppers(prefs, settings)
+fun StudySettings(prefs: Prefs, settings: Settings) {
+    SettingsGroup("Session length") { SessionLength(prefs, settings) }
+    SettingsGroup("Pair mode") {
+        Stepper("Pairs per board", prefs.pairSize, PAIR_SIZE_RANGE, settings::setPairSize, "How many words are matched at once.")
+    }
+    SettingsGroup("Progress") {
         Stepper(
             "Sessions to complete a word",
             prefs.sessionsToComplete,
-            1..10,
+            SESSIONS_TO_COMPLETE_RANGE,
             settings::setSessionsToComplete,
             "A word is completed after this many successful sessions.",
         )
         SpacingSwitch(prefs.spaceSessions, settings::setSpaceSessions)
-        Hint(sessionSummary(prefs))
     }
 }
 
 /**
- * The settings for the length of a session: rounds and the size of the Pair board.
+ * The controls for the length of a session: its cards, how many of them are new and how often each is repeated.
  *
+ * @receiver the group the controls are placed in.
  * @param prefs the current settings.
  * @param settings where changes are saved.
  */
 @Composable
-private fun BoardSteppers(prefs: Prefs, settings: Settings) {
+private fun ColumnScope.SessionLength(prefs: Prefs, settings: Settings) {
+    SliderSetting("Cards per session", prefs.sessionSize, SESSION_SIZE_RANGE, settings::setSessionSize)
+    SliderSetting("New cards per session", prefs.newPerSession, NEW_PER_SESSION_RANGE, settings::setNewPerSession)
     Stepper(
         "Rounds per session",
         prefs.rounds,
-        1..5,
+        ROUNDS_RANGE,
         settings::setRounds,
         "How many times each word goes through all selected modes in one session.",
     )
-    Stepper(
-        "Pairs per Pair board",
-        prefs.pairSize,
-        PAIR_SIZE_RANGE,
-        settings::setPairSize,
-        "How many words are matched at once in Pair mode.",
-    )
+    Hint(sessionSummary(prefs))
+}
+
+/**
+ * A labelled number that is picked on a slider.
+ *
+ * @param label what the number is; the current value is added to it.
+ * @param value the current value.
+ * @param range the allowed values; the slider has a stop for each.
+ * @param onChange called with the new value.
+ */
+@Composable
+private fun SliderSetting(label: String, value: Int, range: IntRange, onChange: (Int) -> Unit) {
+    Column {
+        Text("$label: $value")
+        Slider(
+            value.toFloat(),
+            { onChange(it.roundToInt()) },
+            valueRange = range.first.toFloat()..range.last.toFloat(),
+            steps = range.last - range.first - 1,
+        )
+    }
 }
 
 /**

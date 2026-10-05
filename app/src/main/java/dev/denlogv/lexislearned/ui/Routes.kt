@@ -5,8 +5,17 @@ object Routes {
     /** The list of decks. */
     const val LIBRARY = "library"
 
-    /** The settings screen. */
+    /** The settings overview. */
     const val SETTINGS = "settings"
+
+    /** The study session settings. */
+    const val SETTINGS_STUDY = "settings/study"
+
+    /** The settings of deck generation from EPUBs: provider, key, model and language. */
+    const val SETTINGS_GENERATION = "settings/generation"
+
+    /** The level and card prompt settings. */
+    const val SETTINGS_PROMPT = "settings/prompt"
 
     /** The "deck from EPUB" screen, for a new book. */
     const val EPUB = "epub"
