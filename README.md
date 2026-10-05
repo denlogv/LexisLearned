@@ -121,6 +121,7 @@ Use the **⋮** menu on a book, part or chapter screen to reset everything below
 | Cards per session | How many words one session contains. |
 | New cards per session | How many never-studied words a session may add. |
 | Rounds per session | How many times each word goes through all selected modes in one session. |
+| Pairs per Pair board | How many words are matched at once in Pair mode (3 to 12, default 6). |
 | Sessions to complete a word | How many successful sessions make a word *completed*. |
 | Space sessions over days | On: a word returns after a growing pause. Off: it can be studied again right away. |
 | Provider, API key, model | Used to create decks from EPUBs. Choose **OpenAI-compatible** (your own server address, for example LM Studio, Ollama or OpenRouter), **OpenAI** or **Claude**. The model list is loaded with your key. |
