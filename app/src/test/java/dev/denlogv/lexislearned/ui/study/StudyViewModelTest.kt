@@ -30,8 +30,9 @@ class StudyViewModelTest {
     private val study = StudyRepository(db)
     private val settings: Settings = testSettings().also { it.setSessionSize(4) }
 
-    private suspend fun start(chapterId: Long = -1): StudyViewModel {
+    private suspend fun start(chapterId: Long = -1, studiedBefore: Int = 0): StudyViewModel {
         val deckId = storage.import(sampleDeck())
+        db.cardDao().cards(deckId).takeLast(studiedBefore).forEach { study.finishSession(it, Grade.GOOD, spaced = true) }
         val handle = SavedStateHandle(mapOf("deckId" to deckId, "chapterId" to chapterId, "partId" to -1L))
         return StudyViewModel(study, settings, handle, Random(3)).also { vm -> vm.ui.await { !it.loading && it.current.isNotEmpty() } }
     }
@@ -91,7 +92,7 @@ class StudyViewModelTest {
     fun pairStepsGradeWordsThatWereMissed() = runBlocking {
         settings.setSessionSize(2)
         StudyMode.entries.filter { it != StudyMode.PAIR }.forEach(settings::toggleMode)
-        val vm = start()
+        val vm = start(studiedBefore = 6)
         assertEquals(StudyMode.PAIR, vm.ui.value.mode)
         assertTrue(vm.ui.value.current.size >= 4)
         val missed = vm.ui.value.current.first().id

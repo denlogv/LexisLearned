@@ -65,6 +65,23 @@ class StudyRepository(
     }
 
     /**
+     * Filler words for the Pair board: only words that were studied before, so the board never shows a word the learner has
+     * not met yet. They come from the same chapter as [card] first and from the rest of the book only when the chapter has too
+     * few.
+     *
+     * @param card a word whose chapter to draw from.
+     * @param excludeIds words that must not be returned.
+     * @param count how many words are wanted.
+     * @return up to [count] studied words; fewer when the book has too few of them.
+     */
+    suspend fun learnedFillers(card: CardEntity, excludeIds: List<Long>, count: Int): List<CardEntity> {
+        val exclude = excludeIds.ifEmpty { listOf(NO_CARD) }
+        val same = cards.randomLearnedInChapter(card.chapterId, exclude, count)
+        if (same.size >= count) return same
+        return same + cards.randomLearnedInDeck(card.deckId, exclude + same.map { it.id }, count - same.size)
+    }
+
+    /**
      * Saves the result of one finished session for a word. The session counts toward completion unless it went badly.
      *
      * @param card the word before the session.
