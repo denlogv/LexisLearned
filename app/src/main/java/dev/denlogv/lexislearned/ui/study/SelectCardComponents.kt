@@ -67,7 +67,7 @@ private fun OptionCard(text: String, state: OptionState, onPick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val target = when (state) {
         OptionState.CORRECT -> SuccessGreen.copy(alpha = CORRECT_ALPHA)
-        OptionState.WRONG -> scheme.error
+        OptionState.WRONG -> scheme.errorContainer
         else -> scheme.surfaceVariant
     }
     val background by animateColorAsState(target, label = "option")
