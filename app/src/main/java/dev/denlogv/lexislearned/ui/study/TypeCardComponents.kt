@@ -67,7 +67,7 @@ fun TypeCard(card: CardEntity, d: Direction, onGrade: (Grade) -> Unit) {
 }
 
 /**
- * The result of a check: "Correct!" or the right answer, plus the example sentence.
+ * The result of a check: "Correct!" or the right answer, plus the example sentence in both languages.
  *
  * @param state the typing state; nothing is shown before the answer is checked.
  * @param card the word.
@@ -81,5 +81,5 @@ private fun TypeFeedback(state: TypeState, card: CardEntity, d: Direction) {
         color = if (ok) SuccessGreen else MaterialTheme.colorScheme.error,
         style = MaterialTheme.typography.titleMedium,
     )
-    card.answerExample(d)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+    card.revealedExamples(d).forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
 }

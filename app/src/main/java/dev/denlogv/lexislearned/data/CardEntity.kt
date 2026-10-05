@@ -97,6 +97,15 @@ data class CardEntity(
     fun answerExample(d: Direction): String? = if (d == Direction.FORWARD) backExample else frontExample
 
     /**
+     * The example sentences to show once the answer is revealed: the original sentence in the question's language first,
+     * then its translation.
+     *
+     * @param d which side is the question.
+     * @return the sentences that exist; empty if the card has none.
+     */
+    fun revealedExamples(d: Direction): List<String> = listOfNotNull(promptExample(d), answerExample(d))
+
+    /**
      * A hint to show with the answer: the pronunciation, when the answer is the foreign word.
      *
      * @param d which side is the question.
