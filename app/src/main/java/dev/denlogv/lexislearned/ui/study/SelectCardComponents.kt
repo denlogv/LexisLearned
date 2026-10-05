@@ -1,7 +1,6 @@
 package dev.denlogv.lexislearned.ui.study
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import dev.denlogv.lexislearned.data.CardEntity
 import dev.denlogv.lexislearned.domain.Direction
 import dev.denlogv.lexislearned.domain.Grade
+import dev.denlogv.lexislearned.ui.cardClickable
 
 /** Opacity of the green behind the right answer. */
 private const val CORRECT_ALPHA = 0.85f
@@ -86,7 +86,7 @@ private fun OptionCard(text: String, state: OptionState, onPick: () -> Unit) {
     }
     val background by animateColorAsState(target, label = "option")
     Card(
-        Modifier.fillMaxWidth().clickable(enabled = state == OptionState.OPEN, onClick = onPick),
+        Modifier.fillMaxWidth().cardClickable(enabled = state == OptionState.OPEN, onClick = onPick),
         colors = CardDefaults.cardColors(containerColor = background),
     ) {
         Text(

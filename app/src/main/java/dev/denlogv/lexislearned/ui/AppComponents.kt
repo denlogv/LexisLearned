@@ -1,11 +1,14 @@
 package dev.denlogv.lexislearned.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
@@ -39,6 +42,18 @@ inline fun <reified VM : ViewModel> appViewModel(crossinline create: (LexisLearn
         },
     )
 }
+
+/**
+ * Makes a card react to taps, with the press highlight clipped to the card's rounded shape. A plain clickable on a card's modifier
+ * draws a square highlight whose corners stick out of the card.
+ *
+ * @param enabled whether taps are accepted.
+ * @param onClick called when the card is tapped.
+ * @return this modifier with the clip and the click added.
+ */
+@Composable
+fun Modifier.cardClickable(enabled: Boolean = true, onClick: () -> Unit): Modifier =
+    clip(CardDefaults.shape).clickable(enabled = enabled, onClick = onClick)
 
 /**
  * A progress bar without the trailing stop dot and the gap Material 3 draws by default.
