@@ -60,7 +60,7 @@ class Settings(private val sp: SharedPreferences, private val secrets: Secrets =
     fun setRounds(n: Int) = edit { putInt(ROUNDS, n.coerceIn(MIN_ROUNDS, MAX_ROUNDS)) }
 
     /**
-     * Sets how many word pairs a Pair board holds at most.
+     * Sets how many word pairs a Pair board is filled up to.
      *
      * @param n the number of pairs, limited to [PAIR_SIZE_RANGE].
      */

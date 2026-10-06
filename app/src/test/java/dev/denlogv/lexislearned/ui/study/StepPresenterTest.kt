@@ -41,7 +41,7 @@ class StepPresenterTest {
     }
 
     @Test
-    fun smallPairBoardsArePaddedWithFillers() = runBlocking {
+    fun smallPairBoardsAreFilledUpToThePairSize() = runBlocking {
         val cards = cards()
         val two = cards.values.take(2)
         cards.values.drop(2).forEach { study.finishSession(it, Grade.GOOD, spaced = true) }
@@ -54,10 +54,23 @@ class StepPresenterTest {
             ),
             cards,
         )
-        assertEquals(4, shown.cards.size)
-        assertEquals(2, shown.decoyIds.size)
+        assertEquals(6, shown.cards.size)
+        assertEquals(4, shown.decoyIds.size)
         assertTrue(shown.options.isEmpty())
         assertTrue(shown.cards.map { it.answer(Direction.REVERSE) }.let { it.distinct().size == it.size })
+    }
+
+    @Test
+    fun aLargerPairSizeGivesALargerBoard() = runBlocking {
+        val cards = cards()
+        val two = cards.values.take(2)
+        cards.values.drop(2).forEach { study.finishSession(it, Grade.GOOD, spaced = true) }
+        val shown = StepPresenter(study, Direction.FORWARD, Random(1), pairSize = 9).present(
+            SessionPlanner.Step(StudyMode.PAIR, two.map { it.id }),
+            cards,
+        )
+        assertEquals(9, shown.cards.size)
+        assertEquals(7, shown.decoyIds.size)
     }
 
     @Test
@@ -69,12 +82,11 @@ class StepPresenterTest {
             SessionPlanner.Step(StudyMode.PAIR, two.map { it.id }),
             cards,
         )
-        assertEquals(2, shown.decoyIds.size)
-        assertTrue(shown.decoyIds.all { id -> studied.any { it.id == id } })
+        assertEquals(studied.map { it.id }.toSet(), shown.decoyIds)
     }
 
     @Test
-    fun smallBoardsAreNotPaddedBeyondTheChosenPairSize() = runBlocking {
+    fun boardsAreNotFilledBeyondTheChosenPairSize() = runBlocking {
         val cards = cards()
         cards.values.drop(3).forEach { study.finishSession(it, Grade.GOOD, spaced = true) }
         val three = cards.values.take(3)

@@ -50,7 +50,13 @@ fun Hint(text: String) {
 fun StudySettings(prefs: Prefs, settings: Settings) {
     SettingsGroup("Session length") { SessionLength(prefs, settings) }
     SettingsGroup("Pair mode") {
-        Stepper("Pairs per board", prefs.pairSize, PAIR_SIZE_RANGE, settings::setPairSize, "How many words are matched at once.")
+        Stepper(
+            "Pairs per board",
+            prefs.pairSize,
+            PAIR_SIZE_RANGE,
+            settings::setPairSize,
+            "How many words are matched at once. When fewer are due, the board is filled up with words you have studied.",
+        )
     }
     SettingsGroup("Progress") {
         Stepper(

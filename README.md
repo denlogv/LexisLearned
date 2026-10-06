@@ -123,7 +123,7 @@ The settings screen is an overview of three pages, each with a one-line summary 
 | Cards per session | How many words one session contains. |
 | New cards per session | How many never-studied words a session may add. |
 | Rounds per session | How many times each word goes through all selected modes in one session. |
-| Pairs per board | How many words are matched at once in Pair mode (3 to 12, default 6). |
+| Pairs per board | How many words are matched at once in Pair mode (3 to 12, default 6). A board is topped up to this size with words you have studied before, so it is smaller only while you have not studied enough words yet. |
 | Sessions to complete a word | How many successful sessions make a word *completed*. |
 | Space sessions over days | On: a word returns after a growing pause. Off: it can be studied again right away. |
 | Provider, API key, model | Used to create decks from EPUBs. Choose **OAI-compatible** (any OpenAI-compatible server at your own address, for example LM Studio, Ollama or OpenRouter), **OpenAI** or **Claude**. The model list is loaded with your key. |
