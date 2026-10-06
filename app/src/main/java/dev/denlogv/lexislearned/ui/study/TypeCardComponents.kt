@@ -26,6 +26,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import dev.denlogv.lexislearned.data.CardEntity
@@ -47,6 +49,7 @@ fun TypeCard(card: CardEntity, d: Direction, onGrade: (Grade) -> Unit) {
     var state by remember { mutableStateOf(TypeState()) }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
+    HideKeyboardOnceChecked(state.checked)
     val submit = { if (state.checked) onGrade(state.grade) else state = state.check(card.answer(d)) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(Modifier.fillMaxWidth().heightIn(min = QUESTION_MIN_HEIGHT).padding(vertical = 24.dp), Alignment.Center) { PromptText(card, d) }
@@ -63,6 +66,24 @@ fun TypeCard(card: CardEntity, d: Direction, onGrade: (Grade) -> Unit) {
         TypeFeedback(state, card, d)
         Button(submit, Modifier.fillMaxWidth(), enabled = state.canSubmit) { Text(if (state.checked) "Next" else "Check") }
         if (!state.checked) OutlinedButton({ state = state.giveUp() }, Modifier.fillMaxWidth()) { Text("I don't know") }
+    }
+}
+
+/**
+ * Hides the keyboard and drops the focus from the answer field as soon as the answer is checked, so the feedback and the "Next"
+ * button are not covered. The next step is a new [TypeCard], which asks for focus again and brings the keyboard back.
+ *
+ * @param checked whether the answer has been checked or given up.
+ */
+@Composable
+private fun HideKeyboardOnceChecked(checked: Boolean) {
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    LaunchedEffect(checked) {
+        if (checked) {
+            keyboard?.hide()
+            focusManager.clearFocus()
+        }
     }
 }
 
