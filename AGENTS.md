@@ -11,7 +11,7 @@ LLM with the user's own API key. See `README.md` for users and `CONTRIBUTING.md`
 
 ## Commands
 
-Use a JDK between 17 and 22 (Gradle 8.9 does not run on newer JDKs; the JDK bundled with Android Studio may be newer, so check).
+Use JDK 17 to 21 (CI builds with 21); JDK 27 does not build the `detekt-rules` module, and the JDK bundled with Android Studio may be newer, so check.
 After editing the custom detekt rule in `detekt-rules/`, run `./gradlew --stop`: the detekt worker caches the old rule.
 
 | Task | Command |

@@ -23,41 +23,16 @@ Reading in a language you are still learning is slow when every page hides a doz
 
 - **Five study modes**, each usable in both directions (foreign to native or the other way round):
   - **Learn**: flip the card and see the word, its transcription and example sentences.
-  - **Pair**: match words with their translations.
+  - **Pair**: match words with their translations. The board is topped up only with words you have studied before, never with ones you have not met.
   - **Select**: pick the right answer from several.
   - **Check**: recall the answer, reveal it, rate yourself.
-  - **Type**: type the answer, forgiving about case, accents and small typos.
-- **Configurable sessions**: rounds per session, number of sessions needed to complete a word, and optional spaced repetition between sessions.
+  - **Type**: type the answer, forgiving about case, accents and small typos. **I don't know** shows the answer and the example sentences, and still counts as a miss.
+- **Configurable sessions**: cards and new cards per session, rounds, the size of the Pair board, the number of sessions needed to complete a word, and optional spaced repetition between sessions.
 - **Book, part and chapter screens**, each with its own progress, study button and options. Progress can be reset for a word, a chapter, a part or a whole book.
-- **Deck from EPUB**: reads the book's structure, lets you review it, then has Claude, OpenAI or any OpenAI-compatible server pick vocabulary above your level and write translations, transcriptions and original example sentences. The list of available models is loaded from the provider.
+- **Deck from EPUB**: reads the book's structure, lets you review it, then has Claude, OpenAI or any OpenAI-compatible server pick vocabulary above your level and write translations, transcriptions and original example sentences. The list of available models is loaded from the provider. The deck grows chapter by chapter while it is generated, so you can start studying early; a generation runs in the background (also with the screen off), can be paused and resumed, even after the app was restarted, and does not limit how many cards a chapter gets.
 - **Levels A1 to C2**, each with a built-in prompt you can edit, reset, and extend with your own instructions.
 - **Private by design**: decks and progress stay on your phone, and your API key is stored encrypted.
 - **Export** decks as `.lexis`, with your progress.
-
-## Screenshots
-
-<table>
-  <tr>
-    <td align="center"><img src="docs/screenshots/02-book.png" width="210"><br><sub>A book: progress, options, parts</sub></td>
-    <td align="center"><img src="docs/screenshots/03-part.png" width="210"><br><sub>A part and its chapters</sub></td>
-    <td align="center"><img src="docs/screenshots/04-chapter.png" width="210"><br><sub>A chapter and its words</sub></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="docs/screenshots/05-study-learn.png" width="210"><br><sub>Learn</sub></td>
-    <td align="center"><img src="docs/screenshots/06-study-pair.png" width="210"><br><sub>Pair</sub></td>
-    <td align="center"><img src="docs/screenshots/07-study-select.png" width="210"><br><sub>Select</sub></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="docs/screenshots/08-study-check.png" width="210"><br><sub>Check</sub></td>
-    <td align="center"><img src="docs/screenshots/09-study-type.png" width="210"><br><sub>Type</sub></td>
-    <td align="center"><img src="docs/screenshots/12-epub-review.png" width="210"><br><sub>Reviewing an EPUB before generating a deck</sub></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="docs/screenshots/13-settings-overview.png" width="210"><br><sub>Settings overview</sub></td>
-    <td align="center"><img src="docs/screenshots/10-settings-study.png" width="210"><br><sub>Session settings</sub></td>
-    <td align="center"><img src="docs/screenshots/11-settings-prompt.png" width="210"><br><sub>Level and editable card prompt</sub></td>
-  </tr>
-</table>
 
 ## Install
 
@@ -97,9 +72,27 @@ Tap **Add deck** on the library screen.
 
 Each level shows a progress bar and a line such as `3/16 completed · 5 in progress · 33%`. *Completed* words have finished all the sessions they need; *in progress* words have done some. A part's or book's progress is the sum of what is below it.
 
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/02-book.png" width="210" alt="A book: progress, options, parts"><br><sub>A book: progress, options, parts</sub></td>
+    <td align="center"><img src="docs/screenshots/03-part.png" width="210" alt="A part and its chapters"><br><sub>A part and its chapters</sub></td>
+    <td align="center"><img src="docs/screenshots/04-chapter.png" width="210" alt="A chapter and its words"><br><sub>A chapter and its words</sub></td>
+  </tr>
+</table>
+
 ### 3. Study
 
 On a book, part or chapter screen choose the **direction** (for example EN → RU or RU → EN) and the **modes** you want, then tap **Study**. All five modes are on by default.
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/05-study-learn.png" width="160" alt="Learn"><br><sub>Learn</sub></td>
+    <td align="center"><img src="docs/screenshots/06-study-pair.png" width="160" alt="Pair"><br><sub>Pair</sub></td>
+    <td align="center"><img src="docs/screenshots/07-study-select.png" width="160" alt="Select"><br><sub>Select</sub></td>
+    <td align="center"><img src="docs/screenshots/08-study-check.png" width="160" alt="Check"><br><sub>Check</sub></td>
+    <td align="center"><img src="docs/screenshots/09-study-type.png" width="160" alt="Type"><br><sub>Type</sub></td>
+  </tr>
+</table>
 
 How a session works:
 
@@ -118,12 +111,19 @@ Use the **⋮** menu on a book, part or chapter screen to reset everything below
 
 The settings screen is an overview of three pages, each with a one-line summary of what is chosen there: **Study sessions**, **Deck generation** and **Level and card prompt**. Tap one to open it; the settings are grouped into labelled cards on each page.
 
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/13-settings-overview.png" width="210" alt="The overview"><br><sub>The overview</sub></td>
+    <td align="center"><img src="docs/screenshots/10-settings-study.png" width="210" alt="Study sessions"><br><sub>Study sessions</sub></td>
+  </tr>
+</table>
+
 | Setting | What it does |
 | --- | --- |
 | Cards per session | How many words one session contains. |
 | New cards per session | How many never-studied words a session may add. |
 | Rounds per session | How many times each word goes through all selected modes in one session. |
-| Pairs per Pair board | How many words are matched at once in Pair mode (3 to 12, default 6). |
+| Pairs per board | How many words are matched at once in Pair mode (3 to 12, default 6). |
 | Sessions to complete a word | How many successful sessions make a word *completed*. |
 | Space sessions over days | On: a word returns after a growing pause. Off: it can be studied again right away. |
 | Provider, API key, model | Used to create decks from EPUBs. Choose **OAI-compatible** (any OpenAI-compatible server at your own address, for example LM Studio, Ollama or OpenRouter), **OpenAI** or **Claude**. The model list is loaded with your key. |
@@ -137,11 +137,39 @@ A full session takes roughly *cards × modes × rounds* steps, so a modest sessi
 You need an API key from [Anthropic](https://console.anthropic.com/) or [OpenAI](https://platform.openai.com/), or the address and key of any server that speaks the OpenAI chat API (OpenRouter, Groq, Ollama, LM Studio and others). The key is stored encrypted on your phone and is sent only to the provider you chose. Usage is billed to your key, and the review screen shows an estimate before anything is sent.
 
 1. In **Settings → Deck generation**, pick a provider, paste your key and tap **Save key**. The available models load; choose one. For a custom server pick **OAI-compatible**, enter its address including the version path (usually `/v1`, for example `https://openrouter.ai/api/v1`), save the key (any placeholder if the server needs none) and pick or type a model id. Plain `http://` addresses work too, but then your key and the book text travel unencrypted, so use them only on your own network.
+
+   <table>
+     <tr>
+       <td align="center"><img src="docs/screenshots/14-settings-generation.png" width="210" alt="Provider, key and model"><br><sub>Provider, key and model</sub></td>
+     </tr>
+   </table>
+
 2. Tap **Add deck → Create from EPUB (AI)** and choose the book.
 3. **Review the structure.** LexisLearned reads the book's table of contents and groups chapters into parts where the book has them (for example a story collection or an omnibus). Front and back matter such as contents, copyright pages, notes and licence text, as well as very short sections, are listed but unchecked; tick them if you want them. Check the book's language, choose your level, and untick sections you do not need. A chapter gets a card for every word above your level that the model finds in it, so chapters differ in how many cards they produce; there is no target or cap per chapter.
+
+   <table>
+     <tr>
+       <td align="center"><img src="docs/screenshots/12-epub-review.png" width="210" alt="Reviewing an EPUB before generating a deck"><br><sub>Reviewing an EPUB before generating a deck</sub></td>
+     </tr>
+   </table>
+
 4. Tap **Generate deck.** Sections are processed one at a time, and the deck grows as it goes: the book appears in your library with its first chapter, and each further chapter is added as soon as it is ready, so you can start studying before the whole book is done. Pressing it takes you back to the library, where a banner above the deck list follows the generation; its info button (the "i") explains what is going on, and the banner has two pause buttons: **Pause after section** (text) finishes the section in progress, because its request is paid for already, and then pauses; if none has started yet, it waits for the first one; **Pause now** (a pause icon) gives the request in flight up at once, and that section is done again on resume, so its cost is lost. Both keep every chapter that was finished. A paused generation stays paused, also after you close or restart the app: the book and what is done are kept on the phone, and the banner offers **Resume**, which does only the sections that are not in the deck yet and adds them to the same deck. If a section fails (a network drop, an overloaded provider, a rejected key), the rest carries on and the banner offers **Retry** for the sections that failed; requests that fail on the network or with a server error are retried automatically a few times first. **Choose sections** goes back to the review of the same book with the sections that are in the deck unticked, and **Discard the rest** (the cross in the corner of the banner, after a warning) forgets the book and removes the notification while the deck stays in your library. On the banner of a paused generation, **Choose sections** (a checklist icon) and **Resume** (a play icon) are icon buttons, and tapping the banner does nothing. When the deck is ready the banner says so; tapping it opens the deck and removes the banner, and the cross in its top right corner removes it without opening the deck (on a paused generation the same cross discards the rest). A failure stays on the banner, with the reason behind its info button, until you dismiss it. While a deck is generated, the app runs a foreground service with a notification showing the progress (with the same two pause buttons), so switching to another app or locking the screen does not stop it. On Android 13 and later the app asks once for the permission to show notifications; generation works without it, only the notification is hidden. The result is a normal deck.
 
+   <table>
+     <tr>
+       <td align="center"><img src="docs/screenshots/15-generation-banner.png" width="210" alt="A deck being generated in the background"><br><sub>A deck being generated in the background</sub></td>
+       <td align="center"><img src="docs/screenshots/16-generation-paused.png" width="210" alt="A paused generation: choose sections or resume"><br><sub>A paused generation: choose sections or resume</sub></td>
+     </tr>
+   </table>
+
+
 **Levels and the prompt.** Cards are chosen above the level you select, from A1 to C2, and each level has its own built-in rules. Under **Settings → Level and card prompt** you can edit the rules for the current level (the placeholders `{source_language}`, `{target_language}` and `{level}` are available), reset them to the default, and add extra instructions that apply to every level, for example "focus on legal vocabulary". The format of the model's reply is fixed by the app. It is best to keep the default rule that example sentences must not come from the book itself.
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/11-settings-prompt.png" width="210" alt="Level and editable card prompt"><br><sub>Level and editable card prompt</sub></td>
+  </tr>
+</table>
 
 For a cheap first try, use [`samples/lighthouse-sample.epub`](samples/lighthouse-sample.epub), a very short original story.
 
@@ -164,7 +192,7 @@ Other formats can be added by implementing the `DeckFormat` interface; see [CONT
 
 ## Building from source
 
-You need a JDK between 17 and 22 (Gradle 8.9 does not run on newer ones) and the Android SDK.
+You need JDK 17 to 21 (CI builds with 21) and the Android SDK. Newer JDKs may fail: JDK 27 does not build the `detekt-rules` module.
 
 ```bash
 git clone <this repository>
@@ -177,7 +205,7 @@ The debug APK is written to `app/build/outputs/apk/debug/`. See [CONTRIBUTING.md
 ## Known limitations
 
 - No text-to-speech, cloud sync, or import of other flashcard formats yet.
-- Vocabulary quality when generating a deck depends on the model and the level you choose.
+- Vocabulary quality when generating a deck depends on the model and the level you choose; very small models, such as a few billion parameters run locally, often get translations and example sentences wrong.
 - Release APKs are not minified yet, so they are larger than they need to be.
 
 ## License
