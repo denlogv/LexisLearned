@@ -4,9 +4,10 @@ Thanks for your interest! This page covers how to build the app, run the tests a
 
 ## Setup
 
-- A JDK between 17 and 22. Gradle 8.9 does not run on JDK 23 or newer, and recent Android Studio versions bundle a newer
-  JDK than that, so install JDK 21 (for example Temurin or JetBrains Runtime 21) and point `JAVA_HOME` at it.
-- Android SDK with compile SDK 35.
+- JDK 17 to 21. CI builds with 21, JDK 27 does not build the `detekt-rules` module (Java and Kotlin end up with different JVM
+  targets), and recent Android Studio versions bundle a newer JDK, so install JDK 21 (for example Temurin or JetBrains Runtime 21)
+  and point `JAVA_HOME` at it.
+- Android SDK with compile SDK 37.
 
 ```bash
 ./gradlew testDebugUnitTest assembleDebug
