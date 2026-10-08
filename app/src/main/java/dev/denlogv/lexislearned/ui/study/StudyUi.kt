@@ -8,7 +8,8 @@ import dev.denlogv.lexislearned.ui.plural
 /**
  * Everything the study screen shows.
  *
- * @property loading true until the session's words are loaded.
+ * @property loading true until the session's words are loaded and its first step is ready, so there is always something to draw
+ * when it turns false.
  * @property mode the mode of the current step.
  * @property exposure true for a Learn step that only introduces a word (when several modes are selected); it is not graded.
  * @property current the cards on screen: one, or several for Pair.

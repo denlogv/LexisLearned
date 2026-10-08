@@ -97,12 +97,16 @@ class StudyViewModel(
         proceed()
     }
 
-    /** Loads the session's words, plans the session and shows its first step. */
+    /**
+     * Loads the session's words, plans the session and shows its first step. The screen keeps its loading spinner until that
+     * step is ready, because preparing a step can take a moment (a Pair board is filled up from the database) and a step cannot
+     * be drawn without its cards.
+     */
     private suspend fun start() {
         val list = study.sessionCards(deckId, chapterId, partId, prefs.sessionsToComplete, prefs.sessionSize, prefs.newPerSession)
         list.forEach { cards[it.id] = it }
         planner = SessionPlanner(list.map { it.id }, prefs.modes, prefs.rounds, random, prefs.pairSize)
-        _ui.value = StudyUi(loading = false, totalWords = list.size)
+        _ui.update { it.copy(totalWords = list.size) }
         advance()
     }
 
@@ -132,12 +136,13 @@ class StudyViewModel(
         val next = plan.next()
         step = next
         if (next == null) {
-            _ui.update { it.copy(current = emptyList(), options = emptyList(), stepsLeft = 0, finished = true) }
+            _ui.update { it.copy(loading = false, current = emptyList(), options = emptyList(), stepsLeft = 0, finished = true) }
             return
         }
         val shown = presenter.present(next, cards)
         _ui.update {
             it.copy(
+                loading = false,
                 mode = next.mode,
                 exposure = next.mode == StudyMode.LEARN && plan.modes.size > 1,
                 current = shown.cards,
