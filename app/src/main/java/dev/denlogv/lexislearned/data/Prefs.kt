@@ -31,7 +31,7 @@ enum class Provider(val label: String, val chip: String, val defaultModel: Strin
  * @property sessionSize how many words one session contains.
  * @property newPerSession how many never-studied words a session may add.
  * @property rounds how many times each word goes through all selected modes within one session.
- * @property pairSize the most word pairs on one Pair board.
+ * @property pairSize the number of word pairs one Pair board is filled up to, as far as enough studied words exist.
  * @property sessionsToComplete how many successful sessions make a word completed.
  * @property spaceSessions whether a word's sessions are spaced over days instead of allowing the next one right away.
  * @property provider the AI provider used to generate decks.
