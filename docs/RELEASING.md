@@ -59,6 +59,17 @@ The attestation proves that the file was built by this repository's release work
 
 ## Publishing on GitHub
 
+There are two ways to start a release. Either way the commit must be on `main` and `versionName` in `app/build.gradle.kts` must
+already be the version you release; the workflow stops otherwise.
+
+**Without a local checkout**: open the repository's Actions tab, choose the Release workflow, select Run workflow on `main` and enter
+the version without the `v` (for example `0.1.0-pre4`). The workflow runs the same checks, builds and signs the APK, creates the tag
+`v<version>` on the head of `main` and publishes the release. It refuses a version that is not of the form `1.2.3` or `1.2.3-pre4`,
+a tag that already exists and any ref other than `main`. This is also the way to release from an environment that cannot push tags,
+such as a Claude Code cloud session, whose GitHub proxy rejects them.
+
+**With a tag**: pushing a `v*` tag starts the same workflow.
+
 ```bash
 git tag v0.1.0-pre1
 git push origin v0.1.0-pre1
