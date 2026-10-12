@@ -18,6 +18,19 @@ plugins {
 val releaseRequested = gradle.startParameter.taskNames.any {
     it.contains("release", ignoreCase = true) || it.contains("bundle", ignoreCase = true)
 }
+
+// ---- Version -------------------------------------------------------------------------------------
+// The release tag is the only place a version is written. The release workflow works it out with
+// tools/release-version.sh and passes it as -PversionName and -PversionCode. Other builds get a development
+// version, but a release build without one stops: it would be signed and installable as 0.0.0-dev.
+val versionNameProperty = providers.gradleProperty("versionName").orNull
+val versionCodeProperty = providers.gradleProperty("versionCode").orNull
+if (releaseRequested && (versionNameProperty == null || versionCodeProperty == null)) {
+    throw GradleException(
+        "A release needs its version: pass -PversionName and -PversionCode, for example from " +
+            "'tools/release-version.sh v0.1.0-pre4' (see docs/RELEASING.md).",
+    )
+}
 val keystoreProps = Properties().apply {
     val f = rootProject.file("keystore.properties")
     if (f.exists()) f.inputStream().use { load(it) }
@@ -42,8 +55,8 @@ android {
         applicationId = "dev.denlogv.lexislearned"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.1.0-pre4"
+        versionCode = versionCodeProperty?.toInt() ?: 1
+        versionName = versionNameProperty ?: "0.0.0-dev"
     }
 
     signingConfigs {

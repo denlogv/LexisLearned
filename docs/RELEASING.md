@@ -31,8 +31,11 @@ The password is only looked up when a release task is requested, so debug builds
 
 ```bash
 ./gradlew testDebugUnitTest
-./gradlew assembleRelease     # app/build/outputs/apk/release/LexisLearned-release.apk
+./gradlew assembleRelease -PversionName=0.1.0-pre4 -PversionCode=10004   # app/build/outputs/apk/release/LexisLearned-release.apk
 ```
+
+A release build needs its version on the command line and stops without it. `tools/release-version.sh v0.1.0-pre4` prints the
+two values for a tag (see Versioning).
 
 Check the signature before publishing:
 
@@ -55,12 +58,21 @@ The attestation proves that the file was built by this repository's release work
 
 ## Versioning
 
-`versionName` and `versionCode` are set in `app/build.gradle.kts`. Increase `versionCode` for every release. Pre-releases carry a suffix in `versionName` (for example `0.1.0-pre1`) and are tagged `v0.1.0-pre1`.
+The release tag is the only place a version is written; nothing in the code needs a bump before a release. The release workflow
+turns the tag into `versionName` and `versionCode` with `tools/release-version.sh` and passes them to the build. Builds that are not
+releases get `versionName` `0.0.0-dev` and `versionCode` 1.
+
+A version is `MAJOR.MINOR.PATCH`, with `-preN` (N from 1 to 98) for a pre-release, tagged with a `v` in front: `v0.1.0-pre4`,
+`v0.1.0`. The name is the tag without the `v`. The code is `MAJOR * 1000000 + MINOR * 10000 + PATCH * 100 + N` (99 instead of N for
+a final version), so `0.1.0-pre4` is 10004, `0.1.0` is 10099 and `0.1.1-pre1` is 10101. Android only installs an update with a higher
+code, and this order puts every version above its own pre-releases and below the next patch release. MINOR and PATCH must stay
+below 100. `tools/test-release-version.sh` tests the rules and runs in CI.
+
+Releases before `0.1.0-pre4` used the codes 1 to 3, which are lower than any code above, so updates install over them.
 
 ## Publishing on GitHub
 
-There are two ways to start a release. Either way the commit must be on `main` and `versionName` in `app/build.gradle.kts` must
-already be the version you release; the workflow stops otherwise.
+There are two ways to start a release, and both start the same workflow on the commit you want to release.
 
 **Without a local checkout**: open the repository's Actions tab, choose the Release workflow, select Run workflow on `main` and enter
 the version without the `v` (for example `0.1.0-pre4`). The workflow runs the same checks, builds and signs the APK, creates the tag

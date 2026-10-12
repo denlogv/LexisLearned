@@ -39,6 +39,9 @@ jobs:
       - name: Tests of the custom detekt rule
         run: ./gradlew :detekt-rules:test
 
+      - name: Tests of the release version script
+        run: tools/test-release-version.sh
+
       - name: Unit tests and coverage gate (80% lines)
         run: ./gradlew testDebugUnitTest jacocoTestReport jacocoTestCoverageVerification
 
