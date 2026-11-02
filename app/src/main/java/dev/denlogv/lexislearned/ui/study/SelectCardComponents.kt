@@ -54,11 +54,14 @@ fun SelectCard(card: CardEntity, d: Direction, options: List<String>, onGrade: (
             enabled = picked != null,
         ) { Text("Next") }
     }
-    if (isLandscape()) {
+    if (isSideBySide()) {
         Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Box(Modifier.weight(1f).fillMaxHeight(), Alignment.Center) { PromptText(card, d) }
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                choices()
+            // Centered like the question, and scrolling only when the choices are taller than the panel.
+            Box(Modifier.weight(1f).fillMaxHeight(), Alignment.Center) {
+                Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    choices()
+                }
             }
         }
     } else {
