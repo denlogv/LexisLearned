@@ -40,7 +40,8 @@ private const val HALF_TURN = 90f
 private const val FLIPPED = 180f
 
 /**
- * Learn and Check steps: tap the card to flip it, then continue or rate how well the word was known.
+ * Learn and Check steps: tap the card to flip it, then continue or rate how well the word was known. With a keyboard, Space
+ * flips the card and Enter or the number keys pick the buttons, see [learnShortcutFor].
  *
  * @param card the word.
  * @param d which side is the question.
@@ -53,19 +54,21 @@ fun LearnCard(card: CardEntity, d: Direction, showExamples: Boolean, exposure: B
     var flipped by remember { mutableStateOf(false) }
     var revealed by remember { mutableStateOf(false) }
     val rotation by animateFloatAsState(if (flipped) FLIPPED else 0f, tween(FLIP_MS), label = "flip")
+    val flip = {
+        flipped = !flipped
+        revealed = true
+    }
+    val keys = Modifier.stepKeys(rememberStepFocus()) { key -> learnShortcutFor(key, revealed, exposure)?.perform(flip, actions) != null }
     val face: @Composable (Modifier) -> Unit = { modifier ->
         FlipCard(
             rotation,
             modifier,
-            onFlip = {
-                flipped = !flipped
-                revealed = true
-            },
+            onFlip = flip,
             front = { CardFront(card, d, showExamples, revealed) },
             back = { CardBack(card, d, showExamples) },
         )
     }
-    CardWithActions(face) { vertical -> LearnActions(revealed, exposure, actions, vertical) }
+    CardWithActions(face, keys) { vertical -> LearnActions(revealed, exposure, actions, vertical) }
 }
 
 /**
@@ -73,13 +76,14 @@ fun LearnCard(card: CardEntity, d: Direction, showExamples: Boolean, exposure: B
  * sideways), where a card above a row of buttons would be too short to read.
  *
  * @param card the card; gets the modifier that sizes it.
+ * @param modifier layout modifier of the whole step.
  * @param actions the buttons; told whether they are stacked beside the card.
  */
 @Composable
-private fun CardWithActions(card: @Composable (Modifier) -> Unit, actions: @Composable (Boolean) -> Unit) {
+private fun CardWithActions(card: @Composable (Modifier) -> Unit, modifier: Modifier, actions: @Composable (Boolean) -> Unit) {
     if (isSideBySide()) {
         Row(
-            Modifier.fillMaxSize().padding(bottom = 16.dp), // nothing below the card: keeps it off the screen's edge
+            modifier.fillMaxSize().padding(bottom = 16.dp), // nothing below the card: keeps it off the screen's edge
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -87,7 +91,7 @@ private fun CardWithActions(card: @Composable (Modifier) -> Unit, actions: @Comp
             Box(Modifier.width(SIDE_ACTIONS_WIDTH)) { actions(true) }
         }
     } else {
-        Column(Modifier.fillMaxSize()) {
+        Column(modifier.fillMaxSize()) {
             card(Modifier.weight(1f))
             actions(false)
         }
@@ -144,7 +148,7 @@ private const val CAMERA_DISTANCE = 12f
 private fun CardFront(card: CardEntity, d: Direction, showExamples: Boolean, revealed: Boolean) {
     CardFace(card.prompt(d), card.promptHint(d), otherWord = card.answer(d)) {
         if (showExamples) card.promptExample(d)?.let { Example(it) }
-        Hint(if (revealed) "Tap to flip" else "Tap to reveal")
+        Hint(hinted(if (revealed) "Tap to flip" else "Tap to reveal", "Space"))
     }
 }
 
@@ -159,7 +163,7 @@ private fun CardFront(card: CardEntity, d: Direction, showExamples: Boolean, rev
 private fun CardBack(card: CardEntity, d: Direction, showExamples: Boolean) {
     CardFace(card.answer(d), card.answerHint(d), otherWord = card.prompt(d)) {
         if (showExamples) card.answerExample(d)?.let { Example(it) }
-        Hint("Tap to flip back", MaterialTheme.colorScheme.onSecondaryContainer)
+        Hint(hinted("Tap to flip back", "Space"), MaterialTheme.colorScheme.onSecondaryContainer)
     }
 }
 
@@ -197,8 +201,8 @@ private fun LearnActions(revealed: Boolean, exposure: Boolean, actions: StudyAct
     when {
         !revealed -> if (!vertical) Spacer(Modifier.height(80.dp))
         exposure -> ButtonGroup(vertical) { size ->
-            OutlinedButton(actions.onKnown, size) { Text("I know it") }
-            Button(actions.onIntroduced, size) { Text("Next") }
+            OutlinedButton(actions.onKnown, size) { Text(hinted("I know it", "1")) }
+            Button(actions.onIntroduced, size) { Text(hinted("Next", "2")) }
         }
         else -> GradeButtons(actions.onGrade, vertical)
     }

@@ -105,6 +105,15 @@ How a session works:
 - In **Learn**, **I know it** skips a word you already know and counts it as fully known.
 - After a session, a word comes back after a growing pause (spaced repetition), unless you turn that off. A word is **completed** after the number of successful sessions you configured (1 by default).
 
+#### Keyboard
+
+A whole session can be done from a keyboard (a phone or tablet in Samsung DeX, a Chromebook, or a Bluetooth keyboard). When a keyboard is connected the buttons show their keys. The first control is focused at the start of each step, so you never have to Tab to it; Tab and Enter still work on everything.
+
+| Step | Keys |
+| --- | --- |
+| **Learn**, **Check** | **Space** flips the card. **Enter** flips it, then rates **Got it** (or **Next** when a word is only introduced). **1**, **2**, **3**: Forgot, Got it, Easy. When a word is only introduced: **1** I know it, **2** Next. |
+| **Session end** | **Enter** or **Space** presses **Done**. |
+
 ### 4. Reset progress
 
 Use the **⋮** menu on a book, part or chapter screen to reset everything below it, or the refresh button next to a word to reset just that word. Only study progress is cleared, never the words themselves, and every reset asks for confirmation.

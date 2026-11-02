@@ -33,7 +33,7 @@ fun StepPanelArea(modifier: Modifier = Modifier, content: @Composable ColumnScop
     BoxWithConstraints(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         val panel = stepPanelFor(maxWidth, maxHeight)
         CompositionLocalProvider(LocalStepLayout provides panel.layout) {
-            Column(Modifier.size(panel.width, panel.height), content = content)
+            ProvideKeyHints { Column(Modifier.size(panel.width, panel.height), content = content) }
         }
     }
 }
