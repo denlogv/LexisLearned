@@ -48,7 +48,8 @@ private val TILE_MIN_HEIGHT = 72.dp
 private val TILE_SPACING = 12.dp
 
 /**
- * A Pair step: words on the left, their shuffled translations on the right; tap a word, then its translation.
+ * A Pair step: words on the left, their shuffled translations on the right; tap a word, then its translation. With a keyboard,
+ * press the number of a word, then the letter of its translation.
  *
  * @param cards the cards on the board, fillers included.
  * @param d which side is shown on the left.
@@ -58,20 +59,13 @@ private val TILE_SPACING = 12.dp
 fun PairBoard(cards: List<CardEntity>, d: Direction, onDone: (Set<Long>) -> Unit) {
     val right = remember(cards) { cards.shuffled() }
     var state by remember(cards) { mutableStateOf(PairState(cards.map { it.id })) }
-    LaunchedEffect(state.wrong) {
-        if (state.wrong != null) {
-            delay(WRONG_FLASH_MS)
-            state = state.clearWrong()
-        }
-    }
-    LaunchedEffect(state.isComplete) {
-        if (state.isComplete) {
-            delay(DONE_PAUSE_MS)
-            onDone(state.missed)
-        }
+    PairTimers(state, { state = state.clearWrong() }, onDone)
+    val keys = Modifier.stepKeys(rememberStepFocus(state.matched)) { key ->
+        val pressed = state.press(key, cards.map { it.id }, right.map { it.id })
+        (pressed != state).also { state = pressed }
     }
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 16.dp), // so the last row clears the screen's edge
+        keys.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 16.dp), // so the last row clears the screen's edge
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
@@ -80,6 +74,29 @@ fun PairBoard(cards: List<CardEntity>, d: Direction, onDone: (Set<Long>) -> Unit
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         PairGrid(cards, right, d, state, { state = state.pickLeft(it) }) { state = state.pickRight(it) }
+    }
+}
+
+/**
+ * The two timed parts of a Pair board: a wrong pick turns red for a moment, and a finished board is left after a short pause.
+ *
+ * @param state the board state.
+ * @param onClearWrong called to remove the red marking; it acts on the board as it is then, not as it was when the pick was made.
+ * @param onDone called with the ids of cards that had a wrong match, once all pairs are matched.
+ */
+@Composable
+private fun PairTimers(state: PairState, onClearWrong: () -> Unit, onDone: (Set<Long>) -> Unit) {
+    LaunchedEffect(state.wrong) {
+        if (state.wrong != null) {
+            delay(WRONG_FLASH_MS)
+            onClearWrong()
+        }
+    }
+    LaunchedEffect(state.isComplete) {
+        if (state.isComplete) {
+            delay(DONE_PAUSE_MS)
+            onDone(state.missed)
+        }
     }
 }
 
@@ -103,9 +120,11 @@ private fun PairGrid(
     onTranslation: (Long) -> Unit,
 ) {
     EqualTileGrid(columns = 2, spacing = TILE_SPACING) {
-        words.zip(translations).forEach { (word, translation) ->
-            PairTile(word.prompt(d), word.id in state.matched, selected = state.left == word.id, error = false) { onWord(word.id) }
-            PairTile(translation.answer(d), translation.id in state.matched, selected = false, error = state.wrong == translation.id) {
+        words.zip(translations).forEachIndexed { row, (word, translation) ->
+            val wordText = prefixed(word.prompt(d), wordKeyName(row))
+            val translationText = prefixed(translation.answer(d), translationKeyName(row))
+            PairTile(wordText, word.id in state.matched, selected = state.left == word.id, error = false) { onWord(word.id) }
+            PairTile(translationText, translation.id in state.matched, selected = false, error = state.wrong == translation.id) {
                 onTranslation(translation.id)
             }
         }
