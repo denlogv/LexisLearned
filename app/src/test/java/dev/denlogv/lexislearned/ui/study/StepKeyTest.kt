@@ -148,6 +148,12 @@ class StepKeyTest {
     }
 
     @Test
+    fun aKeyPrefixIsAddedOnlyWhenShown() {
+        assertEquals("1  answer", keyPrefix("answer", "1", show = true))
+        assertEquals("answer", keyPrefix("answer", "1", show = false))
+    }
+
+    @Test
     fun aKeyHintIsAddedOnlyWhenShown() {
         assertEquals("Next (Enter)", keyHint("Next", "Enter", show = true))
         assertEquals("Next", keyHint("Next", "Enter", show = false))
