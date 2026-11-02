@@ -112,8 +112,8 @@ fun keyHint(label: String, key: String, show: Boolean): String = if (show) "$lab
  * A choice's label with the key that picks it, when a keyboard is connected.
  *
  * @param label the label.
- * @param key the key's name, for example "1" or "A".
+ * @param key the key's name, for example "1" or "A"; null if no key picks it.
  * @param show whether to add the key.
- * @return "1  label", or just the label when [show] is false.
+ * @return "1  label", or just the label when [show] is false or there is no key.
  */
-fun keyPrefix(label: String, key: String, show: Boolean): String = if (show) "$key  $label" else label
+fun keyPrefix(label: String, key: String?, show: Boolean): String = if (show && key != null) "$key  $label" else label
