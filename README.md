@@ -110,6 +110,7 @@ A whole session can be done from a keyboard (a phone or tablet in Samsung DeX, a
 | Step | Keys |
 | --- | --- |
 | **Learn**, **Check** | **Space** flips the card. **Enter** flips it, then rates **Got it** (or **Next** when a word is only introduced). **1**, **2**, **3**: Forgot, Got it, Easy. When a word is only introduced: **1** I know it, **2** Next. |
+| **Select** | **1** to **4** pick the answer at that position, then **Enter** or **Space** moves on. |
 | **Session end** | **Enter** or **Space** presses **Done**. |
 
 ### 4. Reset progress

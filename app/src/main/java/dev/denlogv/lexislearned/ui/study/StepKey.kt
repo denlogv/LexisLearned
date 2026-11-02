@@ -107,3 +107,13 @@ fun hasHardwareKeyboard(keyboardType: Int, hardKeyboardHidden: Int): Boolean =
  * @return "Next (Enter)", or just "Next" when [show] is false.
  */
 fun keyHint(label: String, key: String, show: Boolean): String = if (show) "$label ($key)" else label
+
+/**
+ * A choice's label with the key that picks it, when a keyboard is connected.
+ *
+ * @param label the label.
+ * @param key the key's name, for example "1" or "A".
+ * @param show whether to add the key.
+ * @return "1  label", or just the label when [show] is false.
+ */
+fun keyPrefix(label: String, key: String, show: Boolean): String = if (show) "$key  $label" else label
