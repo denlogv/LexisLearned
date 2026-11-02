@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.denlogv.lexislearned.domain.Direction
@@ -132,6 +133,7 @@ private fun Summary(ui: StudyUi, onDone: () -> Unit) {
             Text("${plural(ui.completedWords, "word")} went through all modes", Modifier.padding(top = 8.dp))
             Text("${ui.correct} right · ${ui.wrong} missed answers", Modifier.padding(top = 4.dp))
         }
-        Button(onDone, Modifier.padding(top = 24.dp)) { Text("Done") }
+        // Focused at once, so that Enter or Space finishes the session.
+        Button(onDone, Modifier.padding(top = 24.dp).focusRequester(rememberStepFocus())) { Text("Done") }
     }
 }

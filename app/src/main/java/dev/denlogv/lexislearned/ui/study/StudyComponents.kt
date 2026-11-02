@@ -71,7 +71,7 @@ fun ButtonGroup(vertical: Boolean, content: @Composable (Modifier) -> Unit) {
  */
 @Composable
 fun GradeButtons(onGrade: (Grade) -> Unit, vertical: Boolean = false) = ButtonGroup(vertical) { size ->
-    OutlinedButton({ onGrade(Grade.AGAIN) }, size) { Text("Forgot") }
-    FilledTonalButton({ onGrade(Grade.GOOD) }, size) { Text("Got it") }
-    FilledTonalButton({ onGrade(Grade.EASY) }, size) { Text("Easy") }
+    OutlinedButton({ onGrade(Grade.AGAIN) }, size) { Text(hinted("Forgot", "1")) }
+    FilledTonalButton({ onGrade(Grade.GOOD) }, size) { Text(hinted("Got it", "2")) }
+    FilledTonalButton({ onGrade(Grade.EASY) }, size) { Text(hinted("Easy", "3")) }
 }
