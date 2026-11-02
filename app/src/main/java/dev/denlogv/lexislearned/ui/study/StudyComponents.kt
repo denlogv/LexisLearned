@@ -47,7 +47,7 @@ fun StudyViewModel.actions(): StudyActions = StudyActions(::answer, ::introduced
 fun PromptText(card: CardEntity, d: Direction) = WordBlock(card.prompt(d), card.promptHint(d))
 
 /**
- * Lays out a group of buttons: side by side below the content, or stacked beside it in landscape.
+ * Lays out a group of buttons: side by side below the content, or stacked beside it when the panel is wider than tall.
  *
  * @param vertical true to stack the buttons.
  * @param content the buttons; each gets the modifier that sizes it within the group.

@@ -69,17 +69,17 @@ fun LearnCard(card: CardEntity, d: Direction, showExamples: Boolean, exposure: B
 }
 
 /**
- * Places the card and its buttons: the buttons below the card, or beside it in landscape, where a card below the top bar and
- * above a row of buttons would be too short to read.
+ * Places the card and its buttons: the buttons below the card, or beside it when the panel is wider than tall (a phone held
+ * sideways), where a card above a row of buttons would be too short to read.
  *
  * @param card the card; gets the modifier that sizes it.
  * @param actions the buttons; told whether they are stacked beside the card.
  */
 @Composable
 private fun CardWithActions(card: @Composable (Modifier) -> Unit, actions: @Composable (Boolean) -> Unit) {
-    if (isLandscape()) {
+    if (isSideBySide()) {
         Row(
-            Modifier.fillMaxSize().padding(bottom = 16.dp), // nothing below the card in landscape keeps it off the screen's edge
+            Modifier.fillMaxSize().padding(bottom = 16.dp), // nothing below the card: keeps it off the screen's edge
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -94,7 +94,7 @@ private fun CardWithActions(card: @Composable (Modifier) -> Unit, actions: @Comp
     }
 }
 
-/** Width of the button column beside the card in landscape. */
+/** Width of the button column beside the card. */
 private val SIDE_ACTIONS_WIDTH = 180.dp
 
 /** How long flipping a card takes, in milliseconds. */
@@ -190,7 +190,7 @@ private fun Hint(text: String, color: androidx.compose.ui.graphics.Color = Mater
  * @param revealed whether the card was flipped at least once.
  * @param exposure whether the step only introduces the word.
  * @param actions what the buttons do.
- * @param vertical whether the buttons are stacked beside the card (landscape) instead of in a row below it.
+ * @param vertical whether the buttons are stacked beside the card instead of in a row below it.
  */
 @Composable
 private fun LearnActions(revealed: Boolean, exposure: Boolean, actions: StudyActions, vertical: Boolean) {

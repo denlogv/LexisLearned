@@ -1,6 +1,5 @@
 package dev.denlogv.lexislearned.ui.study
 
-import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -17,18 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-
-/**
- * Whether the device is held sideways, where the study steps put their controls beside the content instead of below it.
- *
- * @return true in landscape orientation.
- */
-@Composable
-fun isLandscape(): Boolean = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
 /**
  * A word with its pronunciation line underneath.
@@ -56,15 +46,15 @@ fun WordBlock(word: String, hint: String?, reserveHint: Boolean = false) {
 /** Where the first line of the word starts, as a fraction of the card's height from its top. */
 private const val WORD_TOP_FRACTION = 0.35f
 
-/** The same in landscape, where the card is short and the example and hint would otherwise not fit below the word. */
-private const val LANDSCAPE_WORD_TOP_FRACTION = 0.1f
+/** The same with the buttons beside the card, where the card is short and the example and hint would not fit below the word. */
+private const val SIDE_BY_SIDE_WORD_TOP_FRACTION = 0.1f
 
 /**
  * One side of a flash card. The first line of the word starts at the same height on every side, a little above the vertical
- * middle (near the top in landscape, where the card is short), so the front and the back line up even when a word or
- * translation wraps onto more lines (the extra lines grow downwards). The word takes as much room as the taller of the two
- * sides' words and the pronunciation line is always reserved, so what follows (the example and the hint) also starts at the
- * same height on both sides. A side that is taller than the card scrolls.
+ * middle (near the top with the buttons beside the card, where the card is short), so the front and the back line up even when
+ * a word or translation wraps onto more lines (the extra lines grow downwards). The word takes as much room as the taller of
+ * the two sides' words and the pronunciation line is always reserved, so what follows (the example and the hint) also starts
+ * at the same height on both sides. A side that is taller than the card scrolls.
  *
  * @param word the word or phrase of this side.
  * @param hint the pronunciation of this side, or null; an empty line is kept for it.
@@ -74,7 +64,7 @@ private const val LANDSCAPE_WORD_TOP_FRACTION = 0.1f
 @Composable
 fun CardFace(word: String, hint: String?, otherWord: String, below: @Composable ColumnScope.() -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val top = maxHeight * if (isLandscape()) LANDSCAPE_WORD_TOP_FRACTION else WORD_TOP_FRACTION
+        val top = maxHeight * if (isSideBySide()) SIDE_BY_SIDE_WORD_TOP_FRACTION else WORD_TOP_FRACTION
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(Modifier.height(top))
             Box(contentAlignment = Alignment.TopCenter) {
