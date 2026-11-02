@@ -38,6 +38,16 @@ fun ProvideKeyHints(content: @Composable () -> Unit) {
 fun hinted(label: String, key: String): String = keyHint(label, key, LocalKeyHints.current)
 
 /**
+ * A choice's label, with the key that picks it if a keyboard is connected.
+ *
+ * @param label the label.
+ * @param key the key's name, for example "1" or "A".
+ * @return the text for the choice.
+ */
+@Composable
+fun prefixed(label: String, key: String): String = keyPrefix(label, key, LocalKeyHints.current)
+
+/**
  * Makes a step react to the keyboard: the modifier holds the focus that key presses go to, and passes them on to [onKey].
  * Presses that no focused button or text field inside the step consumed reach it too.
  *
