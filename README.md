@@ -114,6 +114,7 @@ A whole session can be done from a keyboard (a phone or tablet in Samsung DeX, a
 | **Learn**, **Check** | **Space** flips the card. **Enter** flips it, then rates **Got it** (or **Next** when a word is only introduced). **1**, **2**, **3**: Forgot, Got it, Easy. When a word is only introduced: **1** I know it, **2** Next. |
 | **Select** | **1** to **4** pick the answer at that position, then **Enter** or **Space** moves on. |
 | **Type** | The answer field is focused at the start. **Enter** checks the answer, then **Enter** or **Space** moves on. **Ctrl+D** is "I don't know". |
+| **Pair** | Every word has a number and every translation a letter: press the number of a word, then the letter of its translation. A board of more than ten pairs only has keys for its first ten words; Tab and Enter reach the rest. |
 | **Session end** | **Enter** or **Space** presses **Done**. |
 
 ### 4. Reset progress

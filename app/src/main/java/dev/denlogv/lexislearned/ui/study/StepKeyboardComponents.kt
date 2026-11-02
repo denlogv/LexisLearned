@@ -41,11 +41,11 @@ fun hinted(label: String, key: String): String = keyHint(label, key, LocalKeyHin
  * A choice's label, with the key that picks it if a keyboard is connected.
  *
  * @param label the label.
- * @param key the key's name, for example "1" or "A".
+ * @param key the key's name, for example "1" or "A"; null if no key picks it.
  * @return the text for the choice.
  */
 @Composable
-fun prefixed(label: String, key: String): String = keyPrefix(label, key, LocalKeyHints.current)
+fun prefixed(label: String, key: String?): String = keyPrefix(label, key, LocalKeyHints.current)
 
 /**
  * Makes a step react to the keyboard: the modifier holds the focus that key presses go to, and passes them on to [onKey].
