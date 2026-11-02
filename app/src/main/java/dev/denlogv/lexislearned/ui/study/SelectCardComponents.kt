@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,6 +37,7 @@ private const val CORRECT_ALPHA = 0.85f
 
 /**
  * A Select step: the question and several answers to pick from; after picking, the right answer turns green and "Next" appears.
+ * With a keyboard the number keys pick an answer and Enter moves on, see [selectShortcutFor].
  *
  * @param card the word.
  * @param d which side is the question.
@@ -46,24 +48,39 @@ private const val CORRECT_ALPHA = 0.85f
 fun SelectCard(card: CardEntity, d: Direction, options: List<String>, onGrade: (Grade) -> Unit) {
     val correct = card.answer(d)
     var picked by remember { mutableStateOf<String?>(null) }
-    val choices: @Composable () -> Unit = {
-        options.forEach { option -> OptionCard(option, optionState(option, picked, correct)) { picked = option } }
-        Button(
-            { onGrade(if (picked == correct) Grade.GOOD else Grade.AGAIN) },
-            Modifier.fillMaxWidth().padding(bottom = 16.dp),
-            enabled = picked != null,
-        ) { Text("Next") }
+    val next = { onGrade(if (picked == correct) Grade.GOOD else Grade.AGAIN) }
+    val keys = Modifier.stepKeys(rememberStepFocus(picked)) { key ->
+        selectShortcutFor(key, options, picked)?.perform({ picked = it }, next) != null
     }
-    if (isLandscape()) {
-        Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Box(Modifier.weight(1f).fillMaxHeight(), Alignment.Center) { PromptText(card, d) }
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                choices()
+    SelectLayout(keys, prompt = { PromptText(card, d) }) {
+        options.forEachIndexed { i, option ->
+            OptionCard(prefixed(option, "${i + 1}"), optionState(option, picked, correct)) { picked = option }
+        }
+        Button(next, Modifier.fillMaxWidth().padding(bottom = 16.dp), enabled = picked != null) { Text(hinted("Next", "Enter")) }
+    }
+}
+
+/**
+ * Places the question and the answers: the answers below the question, or beside it when the panel is wider than tall, where
+ * the question and the answers are both centered on the same line.
+ *
+ * @param modifier layout modifier of the whole step.
+ * @param prompt the question.
+ * @param choices the answers and the "Next" button, placed one below the other.
+ */
+@Composable
+private fun SelectLayout(modifier: Modifier, prompt: @Composable () -> Unit, choices: @Composable ColumnScope.() -> Unit) {
+    if (isSideBySide()) {
+        Row(modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(Modifier.weight(1f).fillMaxHeight(), Alignment.Center) { prompt() }
+            // Scrolls only when the answers are taller than the panel.
+            Box(Modifier.weight(1f).fillMaxHeight(), Alignment.Center) {
+                Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), Arrangement.spacedBy(12.dp), content = choices)
             }
         }
     } else {
-        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.weight(1f).fillMaxWidth(), Alignment.Center) { PromptText(card, d) }
+        Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.weight(1f).fillMaxWidth(), Alignment.Center) { prompt() }
             choices()
         }
     }

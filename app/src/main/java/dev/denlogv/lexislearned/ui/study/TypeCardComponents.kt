@@ -38,7 +38,8 @@ import dev.denlogv.lexislearned.domain.Grade
 private val QUESTION_MIN_HEIGHT = 140.dp
 
 /**
- * A Type step: the learner types the answer, checks it and moves on.
+ * A Type step: the learner types the answer, checks it and moves on. With a keyboard, Enter in the field checks the answer,
+ * Ctrl+D gives up, and once the answer is checked Enter or Space moves on, see [shortcutFor].
  *
  * @param card the word.
  * @param d which side is the question.
@@ -47,42 +48,78 @@ private val QUESTION_MIN_HEIGHT = 140.dp
 @Composable
 fun TypeCard(card: CardEntity, d: Direction, onGrade: (Grade) -> Unit) {
     var state by remember { mutableStateOf(TypeState()) }
-    val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focus.requestFocus() }
-    HideKeyboardOnceChecked(state.checked)
+    val field = remember { FocusRequester() }
+    val step = remember { FocusRequester() }
+    LaunchedEffect(Unit) { field.requestFocus() }
+    HandOverFocusOnceChecked(state.checked, step)
+    // The keys act on the state as it was composed: a press that the field used to check the answer may still reach the step,
+    // and must not count as the press that moves on.
+    val composed = state
+    val keys = Modifier.stepKeys(step) { key ->
+        composed.shortcutFor(key)?.perform({ state = composed.giveUp() }, { onGrade(composed.grade) }) != null
+    }
     val submit = { if (state.checked) onGrade(state.grade) else state = state.check(card.answer(d)) }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(keys.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(Modifier.fillMaxWidth().heightIn(min = QUESTION_MIN_HEIGHT).padding(vertical = 24.dp), Alignment.Center) { PromptText(card, d) }
-        OutlinedTextField(
-            state.text,
-            { state = state.withText(it) },
-            Modifier.fillMaxWidth().focusRequester(focus),
-            label = { Text("Type the answer") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { submit() }),
-            isError = state.result == false,
-        )
+        AnswerField(state, field, { state = state.withText(it) }, submit)
         TypeFeedback(state, card, d)
-        Button(submit, Modifier.fillMaxWidth(), enabled = state.canSubmit) { Text(if (state.checked) "Next" else "Check") }
-        if (!state.checked) OutlinedButton({ state = state.giveUp() }, Modifier.fillMaxWidth()) { Text("I don't know") }
+        TypeButtons(state, submit) { state = state.giveUp() }
     }
 }
 
 /**
- * Hides the keyboard and drops the focus from the answer field as soon as the answer is checked, so the feedback and the "Next"
- * button are not covered. The next step is a new [TypeCard], which asks for focus again and brings the keyboard back.
+ * The field the answer is typed in; Enter checks it.
  *
- * @param checked whether the answer has been checked or given up.
+ * @param state the typing state.
+ * @param focus what gives the field the focus.
+ * @param onText called with the new text when it is typed.
+ * @param onSubmit called when Enter or the keyboard's "Done" is pressed.
  */
 @Composable
-private fun HideKeyboardOnceChecked(checked: Boolean) {
+private fun AnswerField(state: TypeState, focus: FocusRequester, onText: (String) -> Unit, onSubmit: () -> Unit) {
+    OutlinedTextField(
+        state.text,
+        onText,
+        Modifier.fillMaxWidth().focusRequester(focus),
+        label = { Text("Type the answer") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+        isError = state.result == false,
+    )
+}
+
+/**
+ * The buttons under the answer: "Check" (then "Next") and, until the answer is checked, "I don't know".
+ *
+ * @param state the typing state.
+ * @param onSubmit called when "Check" or "Next" is pressed.
+ * @param onGiveUp called when "I don't know" is pressed.
+ */
+@Composable
+private fun TypeButtons(state: TypeState, onSubmit: () -> Unit, onGiveUp: () -> Unit) {
+    Button(onSubmit, Modifier.fillMaxWidth(), enabled = state.canSubmit) { Text(if (state.checked) hinted("Next", "Enter") else "Check") }
+    if (!state.checked) OutlinedButton(onGiveUp, Modifier.fillMaxWidth()) { Text(hinted("I don't know", "Ctrl+D")) }
+}
+
+/**
+ * Hides the keyboard as soon as the answer is checked, so the feedback and the "Next" button are not covered, and hands the
+ * focus from the answer field to the step. Dropping the focus altogether would leave it nowhere, so that the next key press
+ * goes to the back button at the top of the screen. The next step is a new [TypeCard], which asks for focus again and brings
+ * the keyboard back.
+ *
+ * @param checked whether the answer has been checked or given up.
+ * @param step the focus of the step, see [stepKeys].
+ */
+@Composable
+private fun HandOverFocusOnceChecked(checked: Boolean, step: FocusRequester) {
     val keyboard = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     LaunchedEffect(checked) {
         if (checked) {
             keyboard?.hide()
             focusManager.clearFocus()
+            step.requestFocus()
         }
     }
 }

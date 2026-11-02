@@ -44,9 +44,45 @@ data class PairState(
     }
 
     /**
+     * Applies a key press: a number key selects the word in that row, a letter key picks the translation in that row.
+     *
+     * @param key the key.
+     * @param words the ids of the cards in the order of the rows of words.
+     * @param translations the ids of the cards in the order of the rows of translations.
+     * @return the new state; unchanged for any other key and for a row that does not exist, and as for a tap otherwise.
+     */
+    fun press(key: StepKey, words: List<Long>, translations: List<Long>): PairState = when (key) {
+        is StepKey.Number -> words.getOrNull(key.value - 1)?.let(::pickLeft) ?: this
+        is StepKey.Letter -> translations.getOrNull(key.index)?.let(::pickRight) ?: this
+        else -> this
+    }
+
+    /**
      * Removes the red marking of a wrong pick.
      *
      * @return the new state.
      */
     fun clearWrong(): PairState = copy(wrong = null)
 }
+
+/** How many rows have a number key: 1 to 9, and 0 for the tenth. */
+private const val NUMBERED_ROWS = 10
+
+/**
+ * The name of the key that selects the word in a row.
+ *
+ * @param row the row, counted from 0.
+ * @return "1" to "9", then "0", or null for a row without a key.
+ */
+fun wordKeyName(row: Int): String? = if (row < NUMBERED_ROWS) ((row + 1) % NUMBERED_ROWS).toString() else null
+
+/**
+ * The name of the key that picks the translation in a row.
+ *
+ * @param row the row, counted from 0.
+ * @return "A", "B" and so on, or null for a row without a key.
+ */
+fun translationKeyName(row: Int): String? = if (row < LETTERS) ('A' + row).toString() else null
+
+/** How many letters there are on the keyboard. */
+private const val LETTERS = 26

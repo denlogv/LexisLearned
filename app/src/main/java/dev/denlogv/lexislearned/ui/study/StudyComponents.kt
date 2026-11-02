@@ -47,7 +47,7 @@ fun StudyViewModel.actions(): StudyActions = StudyActions(::answer, ::introduced
 fun PromptText(card: CardEntity, d: Direction) = WordBlock(card.prompt(d), card.promptHint(d))
 
 /**
- * Lays out a group of buttons: side by side below the content, or stacked beside it in landscape.
+ * Lays out a group of buttons: side by side below the content, or stacked beside it when the panel is wider than tall.
  *
  * @param vertical true to stack the buttons.
  * @param content the buttons; each gets the modifier that sizes it within the group.
@@ -71,7 +71,7 @@ fun ButtonGroup(vertical: Boolean, content: @Composable (Modifier) -> Unit) {
  */
 @Composable
 fun GradeButtons(onGrade: (Grade) -> Unit, vertical: Boolean = false) = ButtonGroup(vertical) { size ->
-    OutlinedButton({ onGrade(Grade.AGAIN) }, size) { Text("Forgot") }
-    FilledTonalButton({ onGrade(Grade.GOOD) }, size) { Text("Got it") }
-    FilledTonalButton({ onGrade(Grade.EASY) }, size) { Text("Easy") }
+    OutlinedButton({ onGrade(Grade.AGAIN) }, size) { Text(hinted("Forgot", "1")) }
+    FilledTonalButton({ onGrade(Grade.GOOD) }, size) { Text(hinted("Got it", "2")) }
+    FilledTonalButton({ onGrade(Grade.EASY) }, size) { Text(hinted("Easy", "3")) }
 }

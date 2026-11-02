@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.denlogv.lexislearned.domain.Direction
@@ -59,7 +60,7 @@ fun StudyScreen(onBack: () -> Unit) {
 }
 
 /**
- * The running session: progress bar, status line and the current step.
+ * The running session: a progress bar across the screen, then the status line and the current step in a centered panel.
  *
  * @param ui what to show.
  * @param d which side of a card is the question.
@@ -68,14 +69,16 @@ fun StudyScreen(onBack: () -> Unit) {
 @Composable
 private fun ColumnScope.ActiveStep(ui: StudyUi, d: Direction, actions: StudyActions) {
     AppProgress(ui.progress, Modifier.fillMaxWidth())
-    Text(
-        ui.statusLine,
-        Modifier.padding(16.dp, 8.dp),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    key(ui.current.map { it.id }, ui.mode, ui.stepsDone) {
-        Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp)) { StepCard(ui, d, actions) }
+    StepPanelArea(Modifier.weight(1f)) {
+        Text(
+            ui.statusLine,
+            Modifier.padding(16.dp, 8.dp),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        key(ui.current.map { it.id }, ui.mode, ui.stepsDone) {
+            Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp)) { StepCard(ui, d, actions) }
+        }
     }
 }
 
@@ -120,6 +123,7 @@ private fun Summary(ui: StudyUi, onDone: () -> Unit) {
             Text("${plural(ui.completedWords, "word")} went through all modes", Modifier.padding(top = 8.dp))
             Text("${ui.correct} right · ${ui.wrong} missed answers", Modifier.padding(top = 4.dp))
         }
-        Button(onDone, Modifier.padding(top = 24.dp)) { Text("Done") }
+        // Focused at once, so that Enter or Space finishes the session.
+        Button(onDone, Modifier.padding(top = 24.dp).focusRequester(rememberStepFocus())) { Text("Done") }
     }
 }
