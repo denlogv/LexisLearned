@@ -59,7 +59,7 @@ fun StudyScreen(onBack: () -> Unit) {
 }
 
 /**
- * The running session: progress bar, status line and the current step.
+ * The running session: progress bar, status and time estimate lines and the current step.
  *
  * @param ui what to show.
  * @param d which side of a card is the question.
@@ -74,6 +74,14 @@ private fun ColumnScope.ActiveStep(ui: StudyUi, d: Direction, actions: StudyActi
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+    if (ui.showTimeLeft) {
+        Text(
+            ui.estimateLine,
+            Modifier.padding(16.dp, 0.dp, 16.dp, 8.dp),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
     key(ui.current.map { it.id }, ui.mode, ui.stepsDone) {
         Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp)) { StepCard(ui, d, actions) }
     }

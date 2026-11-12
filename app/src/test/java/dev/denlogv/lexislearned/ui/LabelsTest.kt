@@ -42,4 +42,14 @@ class LabelsTest {
         assertEquals("study/1/-1/-1", Routes.study(1))
         assertEquals("study/1/2/3", Routes.study(1, 2, 3))
     }
+
+    @Test
+    fun durationsAreShownInRoundedMinutes() {
+        assertEquals("<1 min", minutesLabel(0))
+        assertEquals("<1 min", minutesLabel(29_999))
+        assertEquals("~1 min", minutesLabel(30_000))
+        assertEquals("~1 min", minutesLabel(89_999))
+        assertEquals("~2 min", minutesLabel(90_000))
+        assertEquals("~35 min", minutesLabel(35 * 60_000L + 10_000))
+    }
 }

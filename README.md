@@ -100,6 +100,7 @@ How a session works:
 - **Every word goes through every selected mode.** Learn comes first, the other modes follow in random order, and the words are interleaved so you never see the same word twice in a row.
 - A wrong answer repeats that step a little later, at most twice.
 - A word's result is saved as soon as it has finished all its steps, so you can leave a session at any time without losing the words you already finished.
+- **Time left.** Under the progress bar, the app estimates from your own pace in this session how long it will take to finish the session and to complete the chapter (or the part or book, whichever you started from). Each mode has its own pace. The line appears after your first answer (or later, see *Steps before it shows* in the settings), and it is rough at first and settles as you go. You can switch it off in **Settings → Study sessions**. The estimate for the whole chapter assumes you keep studying with the same settings and does not count the waiting time between spaced sessions. A step you leave idle for more than a minute counts as a minute.
 - In **Learn**, **I know it** skips a word you already know and counts it as fully known.
 - After a session, a word comes back after a growing pause (spaced repetition), unless you turn that off. A word is **completed** after the number of successful sessions you configured (1 by default).
 
