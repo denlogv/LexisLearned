@@ -15,6 +15,7 @@ import dev.denlogv.lexislearned.sampleDeck
 import kotlin.random.Random
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -112,6 +113,72 @@ class StudyViewModelTest {
         vm.known()
         vm.answerPair(emptySet())
         assertEquals(0, vm.ui.value.correct)
+    }
+
+    /** A session over one chapter (by index) or the whole book (-1) with only Type selected, timed by [now]. */
+    private suspend fun timedSession(chapterId: Long = -1, now: () -> Long): StudyViewModel {
+        StudyMode.entries.filter { it != StudyMode.TYPE }.forEach(settings::toggleMode)
+        val deckId = storage.import(sampleDeck())
+        val chapter = if (chapterId < 0) -1L else db.structureDao().chapters(deckId)[chapterId.toInt()].id
+        val handle = SavedStateHandle(mapOf("deckId" to deckId, "chapterId" to chapter, "partId" to -1L))
+        return StudyViewModel(study, settings, handle, Random(3), now).also { vm -> vm.ui.await { !it.loading && it.current.isNotEmpty() } }
+    }
+
+    /** Answers the current Type step and returns the state once the next step, and the estimate for it, is on screen. */
+    private suspend fun StudyViewModel.answerTyped(): StudyUi {
+        val left = ui.value.stepsLeft
+        answer(Grade.GOOD)
+        return ui.await { it.stepsLeft < left || it.finished }
+    }
+
+    @Test
+    fun theTimeLeftAppearsAfterTheFirstAnswer() = runBlocking {
+        settings.setSessionsToComplete(2)
+        var now = 0L
+        val vm = timedSession(chapterId = 0) { now }
+        assertEquals("chapter", vm.ui.value.scopeName)
+        assertNull(vm.ui.value.timeLeft)
+        now += 30_000
+        // 3 Type steps of this session are left, and 4 words need a second session
+        assertEquals(TimeLeft(session = 3 * 30_000, scope = 7 * 30_000), vm.answerTyped().timeLeft)
+        repeat(2) {
+            now += 30_000
+            vm.answerTyped()
+        }
+        now += 30_000
+        assertNull(vm.answerTyped().timeLeft)
+    }
+
+    @Test
+    fun skippedWordsSayNothingAboutThePace() = runBlocking {
+        settings.setSessionSize(6)
+        var now = 0L
+        val vm = timedSession { now }
+        assertEquals("book", vm.ui.value.scopeName)
+        vm.known()
+        assertNull(vm.ui.await { it.stepsLeft == 4 }.timeLeft)
+        now += 20_000
+        // 3 words are left in the session and 7 more words (of the 12) need their session
+        assertEquals(TimeLeft(session = 3 * 20_000, scope = 10 * 20_000), vm.answerTyped().timeLeft)
+    }
+
+    @Test
+    fun theTimeLeftWaitsForTheConfiguredNumberOfSteps() = runBlocking {
+        settings.setTimeLeftAfter(2)
+        var now = 0L
+        val vm = timedSession(chapterId = 0) { now }
+        assertTrue(vm.ui.value.showTimeLeft)
+        now += 30_000
+        assertNull(vm.answerTyped().timeLeft)
+        now += 30_000
+        assertEquals(TimeLeft(session = 2 * 30_000, scope = 2 * 30_000), vm.answerTyped().timeLeft)
+    }
+
+    @Test
+    fun theTimeLeftCanBeSwitchedOff() = runBlocking {
+        settings.setShowTimeLeft(false)
+        val vm = timedSession(chapterId = 0) { 0 }
+        assertEquals(false, vm.ui.value.showTimeLeft)
     }
 
     @Test

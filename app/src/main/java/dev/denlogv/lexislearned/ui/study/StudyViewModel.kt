@@ -30,12 +30,14 @@ import kotlinx.coroutines.launch
  * @param settings the user's settings; they are read once when the session starts.
  * @param handle the saved state holding the navigation arguments.
  * @param random source of randomness for the order of steps and answer choices.
+ * @param clock a monotonic clock in milliseconds that times the learner's steps; tests replace it.
  */
 class StudyViewModel(
     private val study: StudyRepository,
     settings: Settings,
     handle: SavedStateHandle,
     private val random: Random = Random.Default,
+    private val clock: () -> Long = SessionTimer.Companion::monotonicMillis,
 ) : ViewModel() {
     private val deckId: Long = handle["deckId"]!!
     private val chapterId: Long? = handle.get<Long>("chapterId")?.takeIf { it >= 0 }
@@ -45,6 +47,14 @@ class StudyViewModel(
     private val cards = HashMap<Long, CardEntity>()
     private var planner: SessionPlanner? = null
     private var step: SessionPlanner.Step? = null
+    private var timer: SessionTimer? = null
+    private val scopeName = if (chapterId != null) {
+        "chapter"
+    } else if (partId != null) {
+        "part"
+    } else {
+        "book"
+    }
     private val _ui = MutableStateFlow(StudyUi())
 
     /** Which side of a card is the question in this session. */
@@ -94,7 +104,7 @@ class StudyViewModel(
     fun known() {
         val current = step ?: return
         planner?.known(current.cardIds.first())
-        proceed()
+        proceed(timed = false)
     }
 
     /**
@@ -106,12 +116,30 @@ class StudyViewModel(
         val list = study.sessionCards(deckId, chapterId, partId, prefs.sessionsToComplete, prefs.sessionSize, prefs.newPerSession)
         list.forEach { cards[it.id] = it }
         planner = SessionPlanner(list.map { it.id }, prefs.modes, prefs.rounds, random, prefs.pairSize)
-        _ui.update { it.copy(totalWords = list.size) }
+        timer = SessionTimer(clock, laterSteps(list.size), prefs.timeLeftAfter)
+        _ui.update { it.copy(totalWords = list.size, scopeName = scopeName, showTimeLeft = prefs.showTimeLeft) }
         advance()
     }
 
-    /** Saves the words that just finished, counts the step and shows the next one. */
-    private fun proceed() {
+    /**
+     * The steps of the sessions that come after this one and are still needed to complete everything in the scope.
+     *
+     * @param sessionWords how many words this session has; each of them gets one of its sessions done now.
+     * @return the steps per mode, counted per card.
+     */
+    private suspend fun laterSteps(sessionWords: Int): Map<StudyMode, Int> {
+        val lacking = study.remainingSessions(deckId, chapterId, partId, prefs.sessionsToComplete)
+        return SessionPlanner.stepsOfSessions(prefs.modes, prefs.rounds, (lacking - sessionWords).coerceAtLeast(0))
+    }
+
+    /**
+     * Saves the words that just finished, counts the step and shows the next one.
+     *
+     * @param timed false when the step was skipped and says nothing about the learner's pace.
+     */
+    private fun proceed(timed: Boolean = true) {
+        val done = step
+        if (timed && done != null) timer?.stepDone(done)
         viewModelScope.launch {
             save()
             _ui.update { it.copy(stepsDone = it.stepsDone + 1) }
@@ -136,10 +164,13 @@ class StudyViewModel(
         val next = plan.next()
         step = next
         if (next == null) {
-            _ui.update { it.copy(loading = false, current = emptyList(), options = emptyList(), stepsLeft = 0, finished = true) }
+            _ui.update {
+                it.copy(loading = false, current = emptyList(), options = emptyList(), stepsLeft = 0, timeLeft = null, finished = true)
+            }
             return
         }
         val shown = presenter.present(next, cards)
+        timer?.stepShown()
         _ui.update {
             it.copy(
                 loading = false,
@@ -149,6 +180,7 @@ class StudyViewModel(
                 decoyIds = shown.decoyIds,
                 options = shown.options,
                 stepsLeft = plan.stepsLeft,
+                timeLeft = timer?.remaining(plan.stepsLeftByMode),
             )
         }
     }

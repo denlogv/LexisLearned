@@ -13,6 +13,19 @@ import dev.denlogv.lexislearned.domain.StudyMode
 fun plural(n: Int, one: String, many: String = "${one}s"): String = "$n ${if (n == 1) one else many}"
 
 /**
+ * A duration in whole minutes for an estimate, for example "~4 min".
+ *
+ * @param millis the duration in milliseconds.
+ * @return "<1 min" under half a minute, otherwise the minutes rounded to the nearest one.
+ */
+fun minutesLabel(millis: Long): String {
+    val minutes = (millis + MILLIS_PER_MINUTE / 2) / MILLIS_PER_MINUTE
+    return if (minutes < 1) "<1 min" else "~$minutes min"
+}
+
+private const val MILLIS_PER_MINUTE = 60_000L
+
+/**
  * The progress line shown under bars, for example "3/16 completed · 5 in progress · 33% · 2 due". Parts that are zero
  * are left out.
  *

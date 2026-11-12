@@ -90,4 +90,12 @@ class StudyStateTest {
         assertEquals(0f, StudyUi().progress, 0f)
         assertEquals("3 steps left · 0/1 word done", StudyUi(stepsLeft = 3, totalWords = 1).statusLine)
     }
+
+    @Test
+    fun studyUiNamesTheTimeLeftOnceItCanBeEstimated() {
+        assertEquals("", StudyUi().estimateLine)
+        val ui = StudyUi(loading = false, timeLeft = TimeLeft(session = 4 * 60_000L, scope = 35 * 60_000L), scopeName = "part")
+        assertEquals("~4 min left in session · ~35 min in part", ui.estimateLine)
+        assertEquals("<1 min left in session · <1 min in chapter", StudyUi(timeLeft = TimeLeft(1_000, 2_000)).estimateLine)
+    }
 }

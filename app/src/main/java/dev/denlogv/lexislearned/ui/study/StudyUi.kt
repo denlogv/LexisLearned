@@ -3,6 +3,7 @@ package dev.denlogv.lexislearned.ui.study
 import dev.denlogv.lexislearned.data.CardEntity
 import dev.denlogv.lexislearned.domain.StudyMode
 import dev.denlogv.lexislearned.ui.label
+import dev.denlogv.lexislearned.ui.minutesLabel
 import dev.denlogv.lexislearned.ui.plural
 
 /**
@@ -21,6 +22,9 @@ import dev.denlogv.lexislearned.ui.plural
  * @property completedWords words that finished all their steps.
  * @property correct answers that were right.
  * @property wrong answers that were wrong.
+ * @property scopeName what the session was started from: "chapter", "part" or "book".
+ * @property showTimeLeft whether the learner wants the estimate on screen.
+ * @property timeLeft the estimated time left, or null while there is too little to estimate from.
  * @property finished true when every word has finished all its steps.
  */
 data class StudyUi(
@@ -36,6 +40,9 @@ data class StudyUi(
     val completedWords: Int = 0,
     val correct: Int = 0,
     val wrong: Int = 0,
+    val scopeName: String = "chapter",
+    val showTimeLeft: Boolean = true,
+    val timeLeft: TimeLeft? = null,
     val finished: Boolean = false,
 ) {
     /** Progress through the session from 0 to 1. */
@@ -49,4 +56,11 @@ data class StudyUi(
         stepsLeft,
         "step",
     )} left · $completedWords/$totalWords ${if (totalWords == 1) "word" else "words"} done"
+
+    /**
+     * The line under the status line, for example "~4 min left in session · ~35 min in chapter". It is empty until enough
+     * steps have been timed, and still takes the height of a line, so the card below does not jump when the estimate appears.
+     */
+    val estimateLine: String
+        get() = timeLeft?.let { "${minutesLabel(it.session)} left in session · ${minutesLabel(it.scope)} in $scopeName" }.orEmpty()
 }
