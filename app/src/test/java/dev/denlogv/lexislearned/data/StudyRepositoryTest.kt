@@ -141,4 +141,43 @@ class StudyRepositoryTest {
         assertTrue(study.learnedFillers(a, listOf(a.id, card("b").id, card("d").id), 5).isEmpty())
         assertEquals(listOf("b"), study.learnedFillers(a, emptyList(), 1).map { it.sourceId })
     }
+
+    @Test
+    fun resumableCardsAreTheOnesThatStillExistAndAreNotCompleted() = runBlocking {
+        val id = storage.import(sampleDeck())
+        val all = cardsOf(id)
+        val done = study.finishSession(all[0], Grade.GOOD, spaced = true)
+        val ids = listOf(done.id, all[1].id, all[2].id, 99_999L)
+        assertEquals(listOf(all[1].id, all[2].id), study.resumableCards(ids, 1).map { it.id })
+        assertEquals(listOf(all[0].id, all[1].id, all[2].id), study.resumableCards(ids, 2).map { it.id })
+        assertTrue(study.resumableCards(emptyList(), 1).isEmpty())
+    }
+
+    @Test
+    fun resumableCardsHaveTheirCurrentProgress() = runBlocking {
+        val id = storage.import(sampleDeck())
+        val card = cardsOf(id).first()
+        study.finishSession(card, Grade.AGAIN, spaced = true)
+        library.resetCard(card.id)
+        val loaded = study.resumableCards(listOf(card.id), 1).single()
+        assertEquals(0, loaded.reps)
+        assertEquals(null, loaded.dueAt)
+        assertEquals(0, loaded.sessionsDone)
+    }
+
+    @Test
+    fun resumableCardsOfADeletedDeckAreGone() = runBlocking {
+        val id = storage.import(sampleDeck())
+        val ids = cardsOf(id).map { it.id }
+        library.delete(id)
+        assertTrue(study.resumableCards(ids, 1).isEmpty())
+    }
+
+    @Test
+    fun resumableCardsWorkForMoreIdsThanOneQueryTakes() = runBlocking {
+        val id = storage.import(sampleDeck())
+        val real = cardsOf(id).map { it.id }
+        val ids = real.take(2) + (100_000L..101_400L) + real.drop(2)
+        assertEquals(real, study.resumableCards(ids, 1).map { it.id })
+    }
 }

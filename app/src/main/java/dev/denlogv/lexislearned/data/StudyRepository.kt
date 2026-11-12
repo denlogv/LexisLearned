@@ -81,6 +81,17 @@ class StudyRepository(
     }
 
     /**
+     * Loads the words of a session that was left, as they are now. A word that was deleted or completed in the meantime (for
+     * example by a session over a chapter of the same book) is not returned; one that was reset is, with its progress cleared.
+     *
+     * @param ids the words the session planned.
+     * @param needed the number of sessions that completes a word.
+     * @return the words that can still be studied, in reading order.
+     */
+    suspend fun resumableCards(ids: List<Long>, needed: Int): List<CardEntity> =
+        ids.chunked(QUERY_CHUNK).flatMap { cards.openCards(it, needed) }.sortedBy { it.id }
+
+    /**
      * Wrong answers for Select: other words from the same chapter first, the rest of the book only if needed.
      *
      * @param card the word being asked.
@@ -148,6 +159,9 @@ class StudyRepository(
     }
 
     private companion object {
+        /** The most ids in one query; SQLite allows 999 values in older versions. */
+        const val QUERY_CHUNK = 500
+
         /** Passed to queries to mean "do not filter". */
         const val NO_FILTER = -1L
 

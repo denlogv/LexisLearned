@@ -44,6 +44,16 @@ interface CardDao {
     suspend fun dueCards(deckId: Long, chapterId: Long, partId: Long, needed: Int, now: Long, limit: Int): List<CardEntity>
 
     /**
+     * The given words that still exist and are not completed, for continuing a session that was left.
+     *
+     * @param ids the words; keep the list short, SQLite limits the number of values in one query.
+     * @param needed the number of sessions that completes a word; completed words are left out.
+     * @return the words that were found, in reading order.
+     */
+    @Query("SELECT * FROM cards WHERE id IN (:ids) AND sessionsDone < :needed ORDER BY id")
+    suspend fun openCards(ids: List<Long>, needed: Int): List<CardEntity>
+
+    /**
      * Words that were never studied.
      *
      * @param deckId the deck.
