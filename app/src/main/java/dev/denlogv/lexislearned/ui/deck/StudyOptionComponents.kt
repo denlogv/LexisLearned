@@ -1,15 +1,23 @@
 package dev.denlogv.lexislearned.ui.deck
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.denlogv.lexislearned.data.DeckEntity
 import dev.denlogv.lexislearned.data.Prefs
@@ -60,16 +68,40 @@ private fun DirectionChips(deck: DeckEntity, selected: Direction, onSelect: (Dir
 }
 
 /**
- * One chip per study mode, on a horizontally scrolling row.
+ * One compact chip per study mode, so that all five fit on one line of a phone. On a narrower screen or with a larger font
+ * the row wraps instead of scrolling, so no chip is ever hidden off screen.
  *
  * @param selected the selected modes.
  * @param onToggle called when a chip is tapped.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ModeChips(selected: Set<StudyMode>, onToggle: (StudyMode) -> Unit) {
-    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        StudyMode.entries.forEach { mode ->
-            FilterChip(selected = mode in selected, onClick = { onToggle(mode) }, label = { Text(mode.label()) })
-        }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        StudyMode.entries.forEach { mode -> ModeChip(mode.label(), mode in selected) { onToggle(mode) } }
+    }
+}
+
+/**
+ * A chip that looks like a [androidx.compose.material3.FilterChip] but has less padding around its text; the material chip
+ * has fixed, wide padding, which made the five mode chips too wide for one line of a phone.
+ *
+ * @param label the text on the chip.
+ * @param selected whether the mode is selected.
+ * @param onClick called when the chip is tapped.
+ */
+@Composable
+private fun ModeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        selected = selected,
+        onClick = onClick,
+        modifier = Modifier.minimumInteractiveComponentSize().semantics { role = Role.Checkbox },
+        shape = FilterChipDefaults.shape,
+        color = if (selected) colors.secondaryContainer else Color.Transparent,
+        contentColor = if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant,
+        border = if (selected) null else FilterChipDefaults.filterChipBorder(enabled = true, selected = false),
+    ) {
+        Text(label, Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge)
     }
 }
