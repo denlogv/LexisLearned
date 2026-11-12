@@ -52,7 +52,7 @@ fun StudyScreen(onBack: () -> Unit) {
             when {
                 ui.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
                 ui.finished -> Summary(ui, onBack)
-                else -> ActiveStep(ui, vm.direction, vm.actions())
+                else -> ActiveStep(ui, ui.direction, vm.actions())
             }
         }
     }

@@ -1,6 +1,7 @@
 package dev.denlogv.lexislearned.ui.study
 
 import dev.denlogv.lexislearned.data.CardEntity
+import dev.denlogv.lexislearned.domain.Direction
 import dev.denlogv.lexislearned.domain.StudyMode
 import dev.denlogv.lexislearned.ui.label
 import dev.denlogv.lexislearned.ui.minutesLabel
@@ -11,6 +12,7 @@ import dev.denlogv.lexislearned.ui.plural
  *
  * @property loading true until the session's words are loaded and its first step is ready, so there is always something to draw
  * when it turns false.
+ * @property direction which side of a card is the question in this session.
  * @property mode the mode of the current step.
  * @property exposure true for a Learn step that only introduces a word (when several modes are selected); it is not graded.
  * @property current the cards on screen: one, or several for Pair.
@@ -29,6 +31,7 @@ import dev.denlogv.lexislearned.ui.plural
  */
 data class StudyUi(
     val loading: Boolean = true,
+    val direction: Direction = Direction.FORWARD,
     val mode: StudyMode = StudyMode.LEARN,
     val exposure: Boolean = false,
     val current: List<CardEntity> = emptyList(),
