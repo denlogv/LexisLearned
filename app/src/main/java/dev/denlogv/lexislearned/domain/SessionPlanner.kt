@@ -49,6 +49,9 @@ class SessionPlanner(
     /** Steps still to do; a Pair step counts once per card in it. */
     val stepsLeft: Int get() = plans.sumOf { it.stepsLeft }
 
+    /** The same steps as [stepsLeft], counted per mode; a mode with no steps left is missing. */
+    val stepsLeftByMode: Map<StudyMode, Int> get() = plans.flatMap { it.modesLeft }.groupingBy { it }.eachCount()
+
     /** Cards that still have steps to do. */
     val activeCards: Int get() = plans.count { !it.isFinished }
 
@@ -113,5 +116,17 @@ class SessionPlanner(
     companion object {
         /** The most cards a Pair step contains unless the learner chooses otherwise. */
         const val DEFAULT_PAIR_SIZE = 6
+
+        /**
+         * The steps that words still have to do in sessions not planned yet, assuming every such session is a plain one:
+         * each selected mode [rounds] times and no repeats of wrong answers.
+         *
+         * @param modes the selected study modes.
+         * @param rounds how many times each word goes through all selected modes in one session.
+         * @param wordSessions how many sessions of one word are still to come, summed over all words.
+         * @return the steps per mode, counted per card as [stepsLeftByMode] does.
+         */
+        fun stepsOfSessions(modes: Set<StudyMode>, rounds: Int, wordSessions: Int): Map<StudyMode, Int> =
+            modes.associateWith { rounds.coerceAtLeast(1) * wordSessions }
     }
 }

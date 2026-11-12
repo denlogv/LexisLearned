@@ -32,6 +32,9 @@ internal class CardPlan(val id: Long, modes: List<StudyMode>) {
     /** Number of steps left, including pending repeats. */
     val stepsLeft: Int get() = queue.size
 
+    /** The modes of the steps left, in order, including pending repeats. */
+    val modesLeft: List<StudyMode> get() = queue.map { it.mode }
+
     /** True when no steps are left. */
     val isFinished: Boolean get() = queue.isEmpty()
 
