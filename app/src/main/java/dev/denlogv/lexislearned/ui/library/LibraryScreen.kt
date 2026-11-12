@@ -65,6 +65,7 @@ fun LibraryScreen(onOpenDeck: (Long) -> Unit, onSettings: () -> Unit, onEpub: ()
         )
     }
     pending?.let { DeckActionDialog(it, vm, onDismiss = { pending = null }) }
+    WholeChapterSuggestion()
 }
 
 /**
