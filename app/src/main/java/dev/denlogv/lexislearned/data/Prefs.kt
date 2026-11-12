@@ -28,8 +28,13 @@ enum class Provider(val label: String, val chip: String, val defaultModel: Strin
  *
  * @property direction which side of a card is the question.
  * @property modes the selected study modes; never empty.
- * @property sessionSize how many words one session contains.
- * @property newPerSession how many never-studied words a session may add.
+ * @property wholeChapter whether a session takes every studyable word of one chapter; when true [sessionSize] and
+ * [newPerSession] are not used.
+ * @property suggestWholeChapter whether to offer, once, to switch [wholeChapter] on: it is off only because the learner's
+ * numbers predate it. Always false when [wholeChapter] is on or was chosen explicitly, and after the offer was answered.
+ * @property sessionSize how many words one session contains, within [SESSION_SIZE_RANGE]; used when [wholeChapter] is off.
+ * @property newPerSession how many never-studied words a session may add, within [NEW_PER_SESSION_RANGE]; used when
+ * [wholeChapter] is off.
  * @property rounds how many times each word goes through all selected modes within one session.
  * @property pairSize the number of word pairs one Pair board is filled up to, as far as enough studied words exist.
  * @property sessionsToComplete how many successful sessions make a word completed.
@@ -48,6 +53,8 @@ enum class Provider(val label: String, val chip: String, val defaultModel: Strin
 data class Prefs(
     val direction: Direction = Direction.FORWARD,
     val modes: Set<StudyMode> = StudyMode.entries.toSet(),
+    val wholeChapter: Boolean = true,
+    val suggestWholeChapter: Boolean = false,
     val sessionSize: Int = 10,
     val newPerSession: Int = 5,
     val rounds: Int = 1,
@@ -77,3 +84,12 @@ val PAIR_SIZE_RANGE: IntRange = 3..12
 
 /** How many steps may be timed before the study screen shows its time estimate. */
 val TIME_LEFT_AFTER_RANGE: IntRange = 1..10
+
+/** How many words one session may contain when the number is set by hand. */
+val SESSION_SIZE_RANGE: IntRange = 1..MAX_SESSION_CARDS
+
+/** How many never-studied words one session may add when the number is set by hand. */
+val NEW_PER_SESSION_RANGE: IntRange = 0..MAX_SESSION_CARDS
+
+/** The largest number the session size and the new words per session accept; far more than anyone studies in one sitting. */
+const val MAX_SESSION_CARDS: Int = 1000
