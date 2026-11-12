@@ -22,6 +22,7 @@ import dev.denlogv.lexislearned.data.ChapterEntity
 import dev.denlogv.lexislearned.data.DeckEntity
 import dev.denlogv.lexislearned.data.Prefs
 import dev.denlogv.lexislearned.domain.Direction
+import dev.denlogv.lexislearned.ui.CHAPTER_SCOPE
 import dev.denlogv.lexislearned.ui.Routes
 import dev.denlogv.lexislearned.ui.appViewModel
 import dev.denlogv.lexislearned.ui.studyButtonLabel
@@ -78,7 +79,7 @@ private fun ChapterHeader(
         chapter?.title,
         totals,
         options = { StudyOptions(deck, prefs, vm::setDirection, vm::toggleMode) },
-        studyLabel = studyButtonLabel("chapter", totals?.due ?: 0),
+        studyLabel = studyButtonLabel(CHAPTER_SCOPE, totals?.due ?: 0, prefs.wholeChapter),
         studyEnabled = deck != null,
         onStudy = onStudy,
     )
