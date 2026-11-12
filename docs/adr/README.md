@@ -11,5 +11,6 @@ made and are not edited afterwards; a later decision that changes course gets a 
 | [0004](0004-epub-structure-review.md) | EPUB structure is detected by heuristics and always reviewed by the user | Accepted |
 | [0005](0005-resumable-generation.md) | A deck generation is a resumable job whose progress is kept on disk | Accepted |
 | [0006](0006-foreground-service-for-generation.md) | A deck is generated under a foreground service | Accepted |
+| [0007](0007-resumable-study-session.md) | An unfinished study session is kept on disk and offered again | Accepted |
 
 To add one, copy the structure of an existing record (Context, Decision, Consequences) and take the next number.
