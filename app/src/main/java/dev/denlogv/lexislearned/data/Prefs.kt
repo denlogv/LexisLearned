@@ -72,6 +72,9 @@ data class Prefs(
     val customRules: Map<CefrLevel, String> = emptyMap(),
     val hasApiKey: Boolean = false,
 ) {
+    /** How a study session takes its words: a whole chapter, or the numbers set by hand. */
+    val sessionShape: SessionShape get() = if (wholeChapter) SessionShape.WholeChapter else SessionShape.Capped(sessionSize, newPerSession)
+
     /** The usable base URL of the custom server, or null if none is entered or it is invalid. */
     val endpoint: String? get() = normalizeBaseUrl(baseUrl)
 

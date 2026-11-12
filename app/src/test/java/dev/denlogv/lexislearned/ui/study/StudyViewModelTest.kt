@@ -29,7 +29,10 @@ class StudyViewModelTest {
     private val db = memoryDb()
     private val storage = DeckStorage(db)
     private val study = StudyRepository(db)
-    private val settings: Settings = testSettings().also { it.setSessionSize(4) }
+    private val settings: Settings = testSettings().also {
+        it.setWholeChapter(false)
+        it.setSessionSize(4)
+    }
 
     private suspend fun start(chapterId: Long = -1, studiedBefore: Int = 0): StudyViewModel {
         val deckId = storage.import(sampleDeck())
@@ -62,6 +65,15 @@ class StudyViewModelTest {
         assertEquals(0, ui.wrong)
         assertTrue(ui.correct > 0)
         assertEquals(4, db.cardDao().cards(1).count { it.sessionsDone == 1 })
+    }
+
+    @Test
+    fun aWholeChapterSessionIgnoresTheNumberOfCards() = runBlocking {
+        settings.setWholeChapter(true)
+        settings.setSessionSize(2)
+        settings.setNewPerSession(1)
+        val vm = start()
+        assertEquals(4, vm.ui.value.totalWords)
     }
 
     @Test

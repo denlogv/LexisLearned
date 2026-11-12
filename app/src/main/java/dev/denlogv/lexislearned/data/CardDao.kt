@@ -38,9 +38,8 @@ interface CardDao {
      * @return the due words, the longest overdue first.
      */
     @Query(
-        """SELECT * FROM cards WHERE deckId = :deckId AND (:chapterId < 0 OR chapterId = :chapterId)
-        AND (:partId < 0 OR chapterId IN (SELECT id FROM chapters WHERE partId = :partId))
-        AND sessionsDone < :needed AND dueAt IS NOT NULL AND dueAt <= :now ORDER BY dueAt LIMIT :limit""",
+        "SELECT * FROM cards WHERE deckId = :deckId AND (:chapterId < 0 OR chapterId = :chapterId) AND " + SqlFragments.IN_PART +
+            " AND " + SqlFragments.DUE + " ORDER BY dueAt LIMIT :limit",
     )
     suspend fun dueCards(deckId: Long, chapterId: Long, partId: Long, needed: Int, now: Long, limit: Int): List<CardEntity>
 
@@ -54,9 +53,8 @@ interface CardDao {
      * @return the new words in reading order.
      */
     @Query(
-        """SELECT * FROM cards WHERE deckId = :deckId AND (:chapterId < 0 OR chapterId = :chapterId)
-        AND (:partId < 0 OR chapterId IN (SELECT id FROM chapters WHERE partId = :partId))
-        AND dueAt IS NULL ORDER BY id LIMIT :limit""",
+        "SELECT * FROM cards WHERE deckId = :deckId AND (:chapterId < 0 OR chapterId = :chapterId) AND " + SqlFragments.IN_PART +
+            " AND " + SqlFragments.NEVER_STUDIED + " ORDER BY id LIMIT :limit",
     )
     suspend fun newCards(deckId: Long, chapterId: Long, partId: Long, limit: Int): List<CardEntity>
 
@@ -76,6 +74,22 @@ interface CardDao {
         AND sessionsDone < :needed""",
     )
     suspend fun remainingSessions(deckId: Long, chapterId: Long, partId: Long, needed: Int): Int
+
+    /**
+     * The first chapter, in reading order, that has a word to study: one that is due or was never studied. It uses the same
+     * conditions as [dueCards] and [newCards], so a chapter it finds always yields words.
+     *
+     * @param deckId the deck.
+     * @param partId restrict to the chapters of this part, or a negative number for all.
+     * @param needed the number of sessions that completes a word; completed words do not count.
+     * @param now the current time in epoch milliseconds.
+     * @return the chapter's id, or null if nothing in the scope can be studied.
+     */
+    @Query(
+        "SELECT chapterId FROM cards WHERE deckId = :deckId AND " + SqlFragments.IN_PART + " AND (" + SqlFragments.DUE +
+            " OR " + SqlFragments.NEVER_STUDIED + ") ORDER BY chapterId LIMIT 1",
+    )
+    suspend fun firstStudyableChapter(deckId: Long, partId: Long, needed: Int, now: Long): Long?
 
     /**
      * Random cards of a chapter, for filler tiles and wrong answers.
