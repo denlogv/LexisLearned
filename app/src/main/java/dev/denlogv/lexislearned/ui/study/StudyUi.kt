@@ -12,6 +12,8 @@ import dev.denlogv.lexislearned.ui.plural
  *
  * @property loading true until the session's words are loaded and its first step is ready, so there is always something to draw
  * when it turns false.
+ * @property offering true while an unfinished session of this scope is waiting for the learner to continue it or start a new one; the
+ * counters then describe the unfinished session.
  * @property direction which side of a card is the question in this session.
  * @property mode the mode of the current step.
  * @property exposure true for a Learn step that only introduces a word (when several modes are selected); it is not graded.
@@ -31,6 +33,7 @@ import dev.denlogv.lexislearned.ui.plural
  */
 data class StudyUi(
     val loading: Boolean = true,
+    val offering: Boolean = false,
     val direction: Direction = Direction.FORWARD,
     val mode: StudyMode = StudyMode.LEARN,
     val exposure: Boolean = false,
@@ -52,7 +55,7 @@ data class StudyUi(
     val progress: Float get() = if (stepsDone + stepsLeft == 0) 0f else stepsDone.toFloat() / (stepsDone + stepsLeft)
 
     /** The title of the top bar: the current mode while studying, otherwise just "Study". */
-    val title: String get() = if (loading || finished) "Study" else mode.label()
+    val title: String get() = if (loading || offering || finished) "Study" else mode.label()
 
     /** The line under the progress bar, for example "12 steps left · 2/5 words done". */
     val statusLine: String get() = "${plural(

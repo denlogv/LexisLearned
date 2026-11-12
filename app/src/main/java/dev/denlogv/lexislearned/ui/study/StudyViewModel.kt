@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.denlogv.lexislearned.data.CardEntity
 import dev.denlogv.lexislearned.data.Prefs
+import dev.denlogv.lexislearned.data.SessionKeeper
+import dev.denlogv.lexislearned.data.SessionProgress
 import dev.denlogv.lexislearned.data.SessionScope
 import dev.denlogv.lexislearned.data.SessionSettings
 import dev.denlogv.lexislearned.data.Settings
@@ -15,21 +17,28 @@ import dev.denlogv.lexislearned.domain.SessionPlanner
 import dev.denlogv.lexislearned.domain.StudyMode
 import dev.denlogv.lexislearned.ui.Routes
 import kotlin.random.Random
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * A study session: every word runs through every selected mode (repeated for the configured number of rounds) before the
  * session is done. The order comes from [SessionPlanner]; this class shows the steps and saves each word's result as soon as
  * that word has finished its whole plan.
  *
+ * The state of the session is kept by [SessionKeeper] after every step. When the learner studies the same scope again after
+ * leaving a session unfinished, the screen first offers to [continueSession] or to [startNewSession]; the words that finished
+ * before are already saved to the database, so a continued session never saves them again.
+ *
  * The navigation arguments `deckId`, `chapterId` and `partId` come from [handle]; [Routes.NONE] stands for "all".
  *
  * @param study the words of a session and where its results are saved.
  * @param settings the user's settings; they are read once when the view model is created.
  * @param handle the saved state holding the navigation arguments.
+ * @param keeper where the unfinished session is kept.
  * @param random source of randomness for the order of steps and answer choices.
  * @param clock a monotonic clock in milliseconds that times the learner's steps; tests replace it.
  */
@@ -37,6 +46,7 @@ class StudyViewModel(
     private val study: StudyRepository,
     settings: Settings,
     handle: SavedStateHandle,
+    private val keeper: SessionKeeper,
     private val random: Random = Random.Default,
     private val clock: () -> Long = SessionTimer.Companion::monotonicMillis,
 ) : ViewModel() {
@@ -45,12 +55,13 @@ class StudyViewModel(
     private val partId: Long? = handle.get<Long>("partId")?.takeIf { it >= 0 }
     private val target = SessionScope(deckId, chapterId, partId)
     private val prefs: Prefs = settings.prefs.value
-    private val starter = SessionStarter(study, random)
+    private val starter = SessionStarter(study, keeper, random)
     private lateinit var session: SessionSettings
     private lateinit var presenter: StepPresenter
     private val cards = HashMap<Long, CardEntity>()
     private var planner: SessionPlanner? = null
     private var step: SessionPlanner.Step? = null
+    private var offered: SessionStart? = null
     private var timer: SessionTimer? = null
     private val scopeName = if (chapterId != null) {
         "chapter"
@@ -65,7 +76,7 @@ class StudyViewModel(
     val ui: StateFlow<StudyUi> = _ui
 
     init {
-        viewModelScope.launch { run(starter.fresh(target, prefs)) }
+        viewModelScope.launch { open() }
     }
 
     /**
@@ -108,6 +119,43 @@ class StudyViewModel(
         proceed(timed = false)
     }
 
+    /** Continues the unfinished session that is on offer, with the words, the plan, the counters and the settings it had. */
+    fun continueSession() {
+        val saved = offered ?: return
+        offered = null
+        _ui.update { it.copy(loading = true, offering = false) }
+        viewModelScope.launch { run(saved) }
+    }
+
+    /** Throws the unfinished session that is on offer away and plans a new one from the database. */
+    fun startNewSession() {
+        if (offered == null) return
+        offered = null
+        _ui.update { StudyUi() }
+        viewModelScope.launch {
+            keeper.discard(target)
+            run(starter.fresh(target, prefs))
+        }
+    }
+
+    /**
+     * Looks for an unfinished session of this scope: offers it if there is one that can still be continued, otherwise starts a
+     * new session.
+     */
+    private suspend fun open() {
+        val unfinished = starter.unfinished(target) ?: return run(starter.fresh(target, prefs))
+        offered = unfinished
+        _ui.update {
+            it.copy(
+                loading = false,
+                offering = true,
+                stepsLeft = unfinished.planner.stepsLeft,
+                completedWords = unfinished.progress.completedWords,
+                totalWords = unfinished.progress.totalWords,
+            )
+        }
+    }
+
     /**
      * Runs a session: its settings decide the answer side and the way steps are prepared, and its counters replace what the screen
      * has. The screen keeps its loading spinner until the first step is ready, because preparing a step can take a moment (a Pair
@@ -134,7 +182,7 @@ class StudyViewModel(
                 totalWords = progress.totalWords,
             )
         }
-        show(pick(), progress.stepsDone)
+        show(withContext(NonCancellable) { pick(progress.stepsDone) }, progress.stepsDone)
     }
 
     /**
@@ -149,7 +197,9 @@ class StudyViewModel(
     }
 
     /**
-     * Saves the words that just finished and moves to the next step. The count and the next step reach the screen together.
+     * Saves the words that just finished, counts the step and moves to the next one. Saving and choosing the next step (which
+     * writes the state of the session) cannot be cancelled in the middle: leaving the screen then would let a word be saved to
+     * the database but still be planned in the kept session. The count and the next step reach the screen together.
      *
      * @param timed false when the step was skipped and says nothing about the learner's pace.
      */
@@ -158,8 +208,11 @@ class StudyViewModel(
         if (timed && answered != null) timer?.stepDone(answered)
         viewModelScope.launch {
             val done = _ui.value.stepsDone + 1
-            save()
-            show(pick(), done)
+            val next = withContext(NonCancellable) {
+                save()
+                pick(done)
+            }
+            show(next, done)
         }
     }
 
@@ -175,11 +228,27 @@ class StudyViewModel(
     }
 
     /**
-     * Chooses the next step.
+     * Chooses the next step and keeps the state of the session, or forgets the session when it is over.
      *
+     * @param done the number of steps finished once the next step is shown.
      * @return the step to show, or null when every word has finished.
      */
-    private fun pick(): SessionPlanner.Step? = planner?.next().also { step = it }
+    private suspend fun pick(done: Int): SessionPlanner.Step? {
+        val plan = planner ?: return null
+        val next = plan.next()
+        step = next
+        if (next == null) keeper.discard(target) else keeper.keep(target, session, progress(done), plan.snapshot())
+        return next
+    }
+
+    /**
+     * The counters on screen, as they are kept with the session.
+     *
+     * @param done the number of steps finished.
+     * @return the counters.
+     */
+    private fun progress(done: Int): SessionProgress =
+        _ui.value.let { SessionProgress(done, it.correct, it.wrong, it.completedWords, it.totalWords) }
 
     /**
      * Shows a step, or the summary when the session is over.
