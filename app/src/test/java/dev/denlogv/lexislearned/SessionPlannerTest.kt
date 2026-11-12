@@ -175,4 +175,30 @@ class SessionPlannerTest {
         assertEquals(Grade.EASY, SessionGrading.gradeFor(0.0, true))
         assertFalse(SessionGrading.counts(Grade.AGAIN))
     }
+
+    @Test
+    fun stepsLeftAreCountedPerModeAndFollowWrongAnswers() {
+        val modes = setOf(StudyMode.CHECK, StudyMode.TYPE)
+        val planner = SessionPlanner(listOf(1L, 2L), modes, 2, Random(4))
+        assertEquals(mapOf(StudyMode.CHECK to 4, StudyMode.TYPE to 4), planner.stepsLeftByMode)
+        val step = planner.next()!!
+        planner.answered(step, mapOf(step.cardIds.first() to true))
+        assertEquals(3, planner.stepsLeftByMode.getValue(step.mode))
+        val before = planner.stepsLeft
+        val wrong = planner.next()!!
+        planner.answered(wrong, mapOf(wrong.cardIds.first() to false))
+        assertEquals(before, planner.stepsLeft) // the step is repeated later
+        assertEquals(before, planner.stepsLeftByMode.values.sum())
+        planner.known(1L)
+        planner.known(2L)
+        assertEquals(emptyMap<StudyMode, Int>(), planner.stepsLeftByMode)
+    }
+
+    @Test
+    fun laterSessionsNeedEveryModeOncePerRoundAndWord() {
+        val modes = setOf(StudyMode.LEARN, StudyMode.PAIR)
+        assertEquals(mapOf(StudyMode.LEARN to 6, StudyMode.PAIR to 6), SessionPlanner.stepsOfSessions(modes, 2, 3))
+        assertEquals(mapOf(StudyMode.LEARN to 3, StudyMode.PAIR to 3), SessionPlanner.stepsOfSessions(modes, 0, 3))
+        assertEquals(mapOf(StudyMode.LEARN to 0, StudyMode.PAIR to 0), SessionPlanner.stepsOfSessions(modes, 2, 0))
+    }
 }
