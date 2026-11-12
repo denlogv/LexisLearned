@@ -121,7 +121,7 @@ The settings screen is an overview of three pages, each with a one-line summary 
 
 | Setting | What it does |
 | --- | --- |
-| Whole chapter in one session | On (the default): a session is every word of one chapter that is due or new, without a limit, and the two numbers below are not used. Off: a session holds the number of cards you set. If you had chosen the number of cards or of new cards in an earlier version, this starts off, so your choice stays as it was; your numbers are kept and apply whenever it is off. |
+| Whole chapter in one session | On (the default): a session is every word of one chapter that is due or new, without a limit, and the two numbers below are not used. Off: a session holds the number of cards you set. If you had chosen the number of cards or of new cards in an earlier version, this starts off, so your choice stays as it was; your numbers are kept and apply whenever it is off. After the update the library offers once to switch it on (**Use whole chapters** or **Keep my numbers**); changing the switch yourself in Settings counts as having decided, and a new install is never asked. |
 | Cards per session | How many words one session contains when the switch above is off. Type any whole number from 1 to 1000 (default 10). |
 | New cards per session | How many never-studied words such a session may add. Any whole number from 0 to 1000 (default 5). |
 | Rounds per session | How many times each word goes through all selected modes in one session. |
