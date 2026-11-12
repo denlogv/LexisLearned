@@ -58,7 +58,7 @@ class StudyViewModelTest {
     fun aPerfectSessionCompletesEveryWordAndSavesProgress() = runBlocking {
         val vm = start()
         assertEquals(4, vm.ui.value.totalWords)
-        assertEquals(Direction.FORWARD, vm.direction)
+        assertEquals(Direction.FORWARD, vm.ui.value.direction)
         while (!vm.ui.value.finished) vm.playStep()
         val ui = vm.ui.value
         assertEquals(4, ui.completedWords)
