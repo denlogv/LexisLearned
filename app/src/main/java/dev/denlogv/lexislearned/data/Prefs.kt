@@ -34,6 +34,8 @@ enum class Provider(val label: String, val chip: String, val defaultModel: Strin
  * @property pairSize the number of word pairs one Pair board is filled up to, as far as enough studied words exist.
  * @property sessionsToComplete how many successful sessions make a word completed.
  * @property spaceSessions whether a word's sessions are spaced over days instead of allowing the next one right away.
+ * @property showTimeLeft whether the study screen estimates the time left in the session and in the chapter.
+ * @property timeLeftAfter how many steps of a session are timed before the estimate is shown; see [TIME_LEFT_AFTER_RANGE].
  * @property provider the AI provider used to generate decks.
  * @property model the model id for the current provider; empty until chosen for [Provider.OPENAI_COMPATIBLE].
  * @property baseUrl the address of the server for [Provider.OPENAI_COMPATIBLE], as the user typed it.
@@ -52,6 +54,8 @@ data class Prefs(
     val pairSize: Int = SessionPlanner.DEFAULT_PAIR_SIZE,
     val sessionsToComplete: Int = 1,
     val spaceSessions: Boolean = true,
+    val showTimeLeft: Boolean = true,
+    val timeLeftAfter: Int = 1,
     val provider: Provider = Provider.ANTHROPIC,
     val model: String = Provider.ANTHROPIC.defaultModel,
     val baseUrl: String = "",
@@ -70,3 +74,6 @@ data class Prefs(
 
 /** How many word pairs one Pair board may hold. */
 val PAIR_SIZE_RANGE: IntRange = 3..12
+
+/** How many steps may be timed before the study screen shows its time estimate. */
+val TIME_LEFT_AFTER_RANGE: IntRange = 1..10

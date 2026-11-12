@@ -126,6 +126,8 @@ The settings screen is an overview of three pages, each with a one-line summary 
 | Pairs per board | How many words are matched at once in Pair mode (3 to 12, default 6). A board is topped up to this size with words you have studied before, so it is smaller only while you have not studied enough words yet. |
 | Sessions to complete a word | How many successful sessions make a word *completed*. |
 | Space sessions over days | On: a word returns after a growing pause. Off: it can be studied again right away. |
+| Show time left | Shows or hides the estimate of the minutes left in the session and in the chapter. |
+| Steps before it shows | How many steps are timed before the estimate appears (1 by default). A longer wait gives a steadier estimate. |
 | Provider, API key, model | Used to create decks from EPUBs. Choose **OAI-compatible** (any OpenAI-compatible server at your own address, for example LM Studio, Ollama or OpenRouter), **OpenAI** or **Claude**. The model list is loaded with your key. |
 | Your language | The language cards are translated into (an ISO code such as `ru`, `de` or `es`). |
 | Level and card rules | Your level (A1 to C2), editable rules for each level, and extra instructions. |

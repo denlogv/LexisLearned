@@ -81,6 +81,20 @@ class Settings(private val sp: SharedPreferences, private val secrets: Secrets =
     fun setSpaceSessions(on: Boolean) = edit { putBoolean(SPACE_SESSIONS, on) }
 
     /**
+     * Sets whether the study screen shows the estimated time left.
+     *
+     * @param on true to show it.
+     */
+    fun setShowTimeLeft(on: Boolean) = edit { putBoolean(SHOW_TIME_LEFT, on) }
+
+    /**
+     * Sets how many steps of a session are timed before the estimated time left is shown.
+     *
+     * @param n the number of steps, limited to [TIME_LEFT_AFTER_RANGE].
+     */
+    fun setTimeLeftAfter(n: Int) = edit { putInt(TIME_LEFT_AFTER, n.coerceIn(TIME_LEFT_AFTER_RANGE)) }
+
+    /**
      * Chooses the AI provider.
      *
      * @param p the provider.
@@ -185,6 +199,8 @@ class Settings(private val sp: SharedPreferences, private val secrets: Secrets =
         pairSize = sp.getInt(PAIR_SIZE, base.pairSize).coerceIn(PAIR_SIZE_RANGE),
         sessionsToComplete = sp.getInt(SESSIONS_TO_COMPLETE, base.sessionsToComplete),
         spaceSessions = sp.getBoolean(SPACE_SESSIONS, base.spaceSessions),
+        showTimeLeft = sp.getBoolean(SHOW_TIME_LEFT, base.showTimeLeft),
+        timeLeftAfter = sp.getInt(TIME_LEFT_AFTER, base.timeLeftAfter).coerceIn(TIME_LEFT_AFTER_RANGE),
     )
 
     /**
@@ -228,6 +244,8 @@ class Settings(private val sp: SharedPreferences, private val secrets: Secrets =
         const val PAIR_SIZE = "pairSize"
         const val SESSIONS_TO_COMPLETE = "sessionsToComplete"
         const val SPACE_SESSIONS = "spaceSessions"
+        const val SHOW_TIME_LEFT = "showTimeLeft"
+        const val TIME_LEFT_AFTER = "timeLeftAfter"
         const val PROVIDER = "provider"
         const val MODEL_PREFIX = "model_"
         const val BASE_URL = "baseUrl"

@@ -21,6 +21,8 @@ class SettingsTest {
         assertEquals(StudyMode.entries.toSet(), p.modes)
         assertEquals(1, p.sessionsToComplete)
         assertEquals(6, p.pairSize)
+        assertTrue(p.showTimeLeft)
+        assertEquals(1, p.timeLeftAfter)
         assertFalse(p.hasApiKey)
         assertEquals(Provider.ANTHROPIC.defaultModel, p.model)
     }
@@ -50,6 +52,18 @@ class SettingsTest {
         assertEquals(3, settings.prefs.value.pairSize)
         settings.setPairSize(99)
         assertEquals(12, settings.prefs.value.pairSize)
+    }
+
+    @Test
+    fun timeLeftOptionsAreSavedAndClamped() {
+        settings.setShowTimeLeft(false)
+        settings.setTimeLeftAfter(4)
+        assertFalse(settings.prefs.value.showTimeLeft)
+        assertEquals(4, settings.prefs.value.timeLeftAfter)
+        settings.setTimeLeftAfter(0)
+        assertEquals(1, settings.prefs.value.timeLeftAfter)
+        settings.setTimeLeftAfter(99)
+        assertEquals(10, settings.prefs.value.timeLeftAfter)
     }
 
     @Test

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import dev.denlogv.lexislearned.data.PAIR_SIZE_RANGE
 import dev.denlogv.lexislearned.data.Prefs
 import dev.denlogv.lexislearned.data.Settings
+import dev.denlogv.lexislearned.data.TIME_LEFT_AFTER_RANGE
 import kotlin.math.roundToInt
 
 /** How many cards one study session may hold. */
@@ -41,7 +42,8 @@ fun Hint(text: String) {
 }
 
 /**
- * The settings that shape a study session, in three groups: how long it is, the Pair board and when a word counts as learned.
+ * The settings that shape a study session, in groups: how long it is, the Pair board, when a word counts as learned and the
+ * estimate of the time left.
  *
  * @param prefs the current settings.
  * @param settings where changes are saved.
@@ -71,6 +73,33 @@ fun StudySettings(prefs: Prefs, settings: Settings) {
             "On: a word returns after a growing pause (spaced repetition). Off: it can be studied again right away.",
             prefs.spaceSessions,
             settings::setSpaceSessions,
+        )
+    }
+    SettingsGroup("Time left") { TimeLeftSettings(prefs, settings) }
+}
+
+/**
+ * The controls for the estimate of the time left: whether it is shown, and after how many steps.
+ *
+ * @receiver the group the controls are placed in.
+ * @param prefs the current settings.
+ * @param settings where changes are saved.
+ */
+@Composable
+private fun ColumnScope.TimeLeftSettings(prefs: Prefs, settings: Settings) {
+    SwitchSetting(
+        "Show time left",
+        "Under the progress bar: the minutes it takes to finish the session and the chapter at your pace.",
+        prefs.showTimeLeft,
+        settings::setShowTimeLeft,
+    )
+    if (prefs.showTimeLeft) {
+        Stepper(
+            "Steps before it shows",
+            prefs.timeLeftAfter,
+            TIME_LEFT_AFTER_RANGE,
+            settings::setTimeLeftAfter,
+            "A longer wait gives a steadier estimate; after the first step it is only a rough guess.",
         )
     }
 }
