@@ -27,7 +27,7 @@ Reading in a language you are still learning is slow when every page hides a doz
   - **Select**: pick the right answer from several.
   - **Check**: recall the answer, reveal it, rate yourself.
   - **Type**: type the answer, forgiving about case, accents and small typos. **I don't know** shows the answer and the example sentences, and still counts as a miss.
-- **Configurable sessions**: cards and new cards per session, rounds, the size of the Pair board, the number of sessions needed to complete a word, and optional spaced repetition between sessions.
+- **Configurable sessions**: a whole chapter per session or any number of cards and new cards, rounds, the size of the Pair board, the number of sessions needed to complete a word, and optional spaced repetition between sessions.
 - **Book, part and chapter screens**, each with its own progress, study button and options. Progress can be reset for a word, a chapter, a part or a whole book.
 - **Deck from EPUB**: reads the book's structure, lets you review it, then has Claude, OpenAI or any OpenAI-compatible server pick vocabulary above your level and write translations, transcriptions and original example sentences. The list of available models is loaded from the provider. The deck grows chapter by chapter while it is generated, so you can start studying early; a generation runs in the background (also with the screen off), can be paused and resumed, even after the app was restarted, and does not limit how many cards a chapter gets.
 - **Levels A1 to C2**, each with a built-in prompt you can edit, reset, and extend with your own instructions.
@@ -96,7 +96,7 @@ On a book, part or chapter screen choose the **direction** (for example EN → R
 
 How a session works:
 
-- It contains the words that are due first, then new words, up to the session size in Settings.
+- It is **one whole chapter** by default: every word of the chapter that is due, first, then every new one. Started from a book or a part, it takes the first chapter (in reading order) that has any word to study, and the next session continues with the next chapter. If you prefer shorter sessions, switch **Whole chapter in one session** off in Settings and choose how many cards, and how many new ones, a session holds; it then contains the due words first and then new words, up to those numbers, from anywhere in the book or part.
 - **Every word goes through every selected mode.** Learn comes first, the other modes follow in random order, and the words are interleaved so you never see the same word twice in a row.
 - A wrong answer repeats that step a little later, at most twice.
 - A word's result is saved as soon as it has finished all its steps, so you can leave a session at any time without losing the words you already finished.
@@ -121,8 +121,9 @@ The settings screen is an overview of three pages, each with a one-line summary 
 
 | Setting | What it does |
 | --- | --- |
-| Cards per session | How many words one session contains. |
-| New cards per session | How many never-studied words a session may add. |
+| Whole chapter in one session | On (the default): a session is every word of one chapter that is due or new, without a limit, and the two numbers below are not used. Off: a session holds the number of cards you set. If you had chosen the number of cards or of new cards in an earlier version, this starts off, so your choice stays as it was; your numbers are kept and apply whenever it is off. |
+| Cards per session | How many words one session contains when the switch above is off. Type any whole number from 1 to 1000 (default 10). |
+| New cards per session | How many never-studied words such a session may add. Any whole number from 0 to 1000 (default 5). |
 | Rounds per session | How many times each word goes through all selected modes in one session. |
 | Pairs per board | How many words are matched at once in Pair mode (3 to 12, default 6). A board is topped up to this size with words you have studied before, so it is smaller only while you have not studied enough words yet. |
 | Sessions to complete a word | How many successful sessions make a word *completed*. |
@@ -133,7 +134,7 @@ The settings screen is an overview of three pages, each with a one-line summary 
 | Your language | The language cards are translated into (an ISO code such as `ru`, `de` or `es`). |
 | Level and card rules | Your level (A1 to C2), editable rules for each level, and extra instructions. |
 
-A full session takes roughly *cards × modes × rounds* steps, so a modest session size (the default is 10 words) keeps it comfortable.
+A session takes roughly *words × modes × rounds* steps. With whole chapters its length is the chapter's, so a chapter with many words makes a long session; switch the setting off to cap it. With a number of cards, a modest size (10 words by default) keeps it comfortable.
 
 ## Decks from an EPUB
 
