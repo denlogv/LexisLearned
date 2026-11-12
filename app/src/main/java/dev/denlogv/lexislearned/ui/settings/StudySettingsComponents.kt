@@ -66,7 +66,12 @@ fun StudySettings(prefs: Prefs, settings: Settings) {
             settings::setSessionsToComplete,
             "A word is completed after this many successful sessions.",
         )
-        SpacingSwitch(prefs.spaceSessions, settings::setSpaceSessions)
+        SwitchSetting(
+            "Space sessions over days",
+            "On: a word returns after a growing pause (spaced repetition). Off: it can be studied again right away.",
+            prefs.spaceSessions,
+            settings::setSpaceSessions,
+        )
     }
 }
 
@@ -113,17 +118,19 @@ private fun SliderSetting(label: String, value: Int, range: IntRange, onChange: 
 }
 
 /**
- * The switch for spacing sessions over days.
+ * A labelled on/off switch with an explanation.
  *
- * @param checked whether spacing is on.
+ * @param label what the switch is.
+ * @param hint an explanation under the label.
+ * @param checked whether it is on.
  * @param onChange called with the new value.
  */
 @Composable
-private fun SpacingSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun SwitchSetting(label: String, hint: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text("Space sessions over days")
-            Hint("On: a word returns after a growing pause (spaced repetition). Off: it can be studied again right away.")
+            Text(label)
+            Hint(hint)
         }
         Switch(checked, onChange)
     }
