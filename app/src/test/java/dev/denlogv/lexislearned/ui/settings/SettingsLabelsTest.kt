@@ -4,14 +4,26 @@ import dev.denlogv.lexislearned.ai.ModelInfo
 import dev.denlogv.lexislearned.data.Prefs
 import dev.denlogv.lexislearned.data.Provider
 import dev.denlogv.lexislearned.domain.CefrLevel
+import dev.denlogv.lexislearned.domain.StudyMode
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SettingsLabelsTest {
     @Test
     fun sessionSummaryMultipliesWordsModesAndRounds() {
-        val text = sessionSummary(Prefs(sessionSize = 10, rounds = 2))
+        val text = sessionSummary(Prefs(wholeChapter = false, sessionSize = 10, rounds = 2))
         assertEquals(true, text.startsWith("A full session is about 100 steps (10 words × 5 modes × 2 rounds)."))
+    }
+
+    @Test
+    fun sessionSummaryOfWholeChaptersSaysWhatOneWordTakes() {
+        val text = sessionSummary(Prefs(wholeChapter = true, sessionSize = 10, rounds = 2))
+        assertEquals(true, text.startsWith("A session is all words of a chapter, and each word takes about 10 steps (5 modes × 2 rounds)"))
+        assertEquals(false, "10 words" in text)
+        assertEquals(
+            true,
+            sessionSummary(Prefs(wholeChapter = true, modes = setOf(StudyMode.LEARN))).contains("about 1 step (1 mode × 1 round)"),
+        )
     }
 
     @Test
@@ -35,11 +47,15 @@ class SettingsLabelsTest {
     fun studySummaryNamesTheSessionChoices() {
         assertEquals(
             "10 cards per session · 5 new · 1 round · pairs of 6",
-            studySummary(Prefs(sessionSize = 10, newPerSession = 5, rounds = 1, pairSize = 6)),
+            studySummary(Prefs(wholeChapter = false, sessionSize = 10, newPerSession = 5, rounds = 1, pairSize = 6)),
         )
         assertEquals(
             "1 card per session · 0 new · 3 rounds · pairs of 12",
-            studySummary(Prefs(sessionSize = 1, newPerSession = 0, rounds = 3, pairSize = 12)),
+            studySummary(Prefs(wholeChapter = false, sessionSize = 1, newPerSession = 0, rounds = 3, pairSize = 12)),
+        )
+        assertEquals(
+            "All words of a chapter per session · 2 rounds · pairs of 6",
+            studySummary(Prefs(wholeChapter = true, sessionSize = 10, newPerSession = 5, rounds = 2, pairSize = 6)),
         )
     }
 
