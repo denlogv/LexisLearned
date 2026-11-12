@@ -43,7 +43,10 @@ class StudyStartTest {
         val study = StudyRepository(db)
         val deckId = DeckStorage(db).import(sampleDeck())
         db.cardDao().cards(deckId).takeLast(6).forEach { study.finishSession(it, Grade.GOOD, spaced = true) }
-        val settings = testSettings().also { it.setSessionSize(2) }
+        val settings = testSettings().also {
+            it.setWholeChapter(false)
+            it.setSessionSize(2)
+        }
         StudyMode.entries.filter { it != StudyMode.PAIR }.forEach(settings::toggleMode)
         val handle = SavedStateHandle(mapOf("deckId" to deckId, "chapterId" to -1L, "partId" to -1L))
         gate.gated = true

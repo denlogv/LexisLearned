@@ -1,5 +1,6 @@
 package dev.denlogv.lexislearned.data
 
+import dev.denlogv.lexislearned.data.SessionShape.Capped
 import dev.denlogv.lexislearned.domain.Chapter
 import dev.denlogv.lexislearned.domain.Deck
 import dev.denlogv.lexislearned.domain.Grade
@@ -40,22 +41,30 @@ class StudyRepositoryTest {
         val id = storage.import(sampleDeck())
         val first = cardsOf(id).first()
         study.finishSession(first, Grade.AGAIN, spaced = true) // due in ten minutes
-        assertTrue(study.sessionCards(id, null, null, 1, 10, 5).none { it.id == first.id })
+        assertTrue(study.sessionCards(id, null, null, 1, Capped(10, 5)).none { it.id == first.id })
         now += DAY
-        val session = study.sessionCards(id, null, null, 1, 10, 5)
+        val session = study.sessionCards(id, null, null, 1, Capped(10, 5))
         assertEquals(first.id, session.first().id)
         assertEquals(6, session.size)
-        assertEquals(2, study.sessionCards(id, null, null, 1, 2, 5).size)
-        assertEquals(1, study.sessionCards(id, null, null, 1, 10, 0).size)
+        assertEquals(2, study.sessionCards(id, null, null, 1, Capped(2, 5)).size)
+        assertEquals(1, study.sessionCards(id, null, null, 1, Capped(10, 0)).size)
     }
 
     @Test
     fun sessionCardsCanBeLimitedToAChapterOrPart() = runBlocking {
         val id = storage.import(partedDeck())
         val chapter = library.chapters(id, 1).first()[0]
-        assertEquals(4, study.sessionCards(id, chapter.id, null, 1, 10, 10).size)
+        assertEquals(4, study.sessionCards(id, chapter.id, null, 1, Capped(10, 10)).size)
         val part = library.parts(id).first().single()
-        assertEquals(8, study.sessionCards(id, null, part.id, 1, 10, 10).size)
+        assertEquals(8, study.sessionCards(id, null, part.id, 1, Capped(10, 10)).size)
+    }
+
+    @Test
+    fun aCappedSessionNeverExceedsItsNumbersEvenWhenNothingIsDue() = runBlocking {
+        val id = storage.import(sampleDeck())
+        assertEquals(3, study.sessionCards(id, null, null, 1, Capped(3, 3)).size)
+        assertEquals(0, study.sessionCards(id, null, null, 1, Capped(3, 0)).size)
+        assertEquals(0, study.sessionCards(id, null, null, 1, Capped(0, 5)).size)
     }
 
     @Test

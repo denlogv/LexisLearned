@@ -113,7 +113,7 @@ class StudyViewModel(
      * be drawn without its cards.
      */
     private suspend fun start() {
-        val list = study.sessionCards(deckId, chapterId, partId, prefs.sessionsToComplete, prefs.sessionSize, prefs.newPerSession)
+        val list = study.sessionCards(deckId, chapterId, partId, prefs.sessionsToComplete, prefs.sessionShape)
         list.forEach { cards[it.id] = it }
         planner = SessionPlanner(list.map { it.id }, prefs.modes, prefs.rounds, random, prefs.pairSize)
         timer = SessionTimer(clock, laterSteps(list.size), prefs.timeLeftAfter)
