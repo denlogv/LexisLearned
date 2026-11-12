@@ -36,7 +36,7 @@ fun DeckScreen(onBack: () -> Unit, onStudy: (Long, Long, Long) -> Unit, onChapte
                 deck?.title,
                 totals,
                 options = { StudyOptions(deck, prefs, vm::setDirection, vm::toggleMode) },
-                studyLabel = studyButtonLabel("book", totals.due),
+                studyLabel = studyButtonLabel("book", totals.due, prefs.wholeChapter),
                 studyEnabled = true,
                 onStudy = { onStudy(vm.deckId, Routes.NONE, Routes.NONE) },
             )

@@ -34,7 +34,7 @@ fun PartScreen(onBack: () -> Unit, onStudy: (Long, Long, Long) -> Unit, onChapte
                 part?.title,
                 totals,
                 options = { StudyOptions(deck, prefs, vm::setDirection, vm::toggleMode) },
-                studyLabel = studyButtonLabel("part", totals.due),
+                studyLabel = studyButtonLabel("part", totals.due, prefs.wholeChapter),
                 studyEnabled = deck != null,
                 onStudy = { deck?.let { onStudy(it.id, Routes.NONE, vm.partId) } },
             )

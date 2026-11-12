@@ -26,6 +26,18 @@ class LabelsTest {
     }
 
     @Test
+    fun aBookOrPartButtonOffersTheNextChapterWhenSessionsAreWholeChapters() {
+        assertEquals("Study book (next chapter)", studyButtonLabel("book", 3, wholeChapter = true))
+        assertEquals("Study part (next chapter)", studyButtonLabel("part", 0, wholeChapter = true))
+    }
+
+    @Test
+    fun aChapterButtonKeepsItsDueCountWhenSessionsAreWholeChapters() {
+        assertEquals("Study chapter (3 due + new)", studyButtonLabel(CHAPTER_SCOPE, 3, wholeChapter = true))
+        assertEquals("Study chapter (new cards)", studyButtonLabel(CHAPTER_SCOPE, 0, wholeChapter = true))
+    }
+
+    @Test
     fun everyModeHasANameAndADescription() {
         StudyMode.entries.forEach {
             assertEquals(false, it.label().isBlank())

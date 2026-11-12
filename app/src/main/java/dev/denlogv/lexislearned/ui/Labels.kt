@@ -52,9 +52,18 @@ private const val PERCENT = 100
  *
  * @param scope what is studied: "book", "part" or "chapter".
  * @param due how many words are due.
- * @return for example "Study book (3 due + new)" or "Study chapter (new cards)".
+ * @param wholeChapter whether a session is one whole chapter. A book or part then offers its next chapter, not all its due
+ * words, so the due count would promise more than the session holds and is left out; a chapter's own count stays true.
+ * @return for example "Study book (3 due + new)", "Study chapter (new cards)" or "Study part (next chapter)".
  */
-fun studyButtonLabel(scope: String, due: Int): String = if (due > 0) "Study $scope ($due due + new)" else "Study $scope (new cards)"
+fun studyButtonLabel(scope: String, due: Int, wholeChapter: Boolean = false): String = when {
+    wholeChapter && scope != CHAPTER_SCOPE -> "Study $scope (next chapter)"
+    due > 0 -> "Study $scope ($due due + new)"
+    else -> "Study $scope (new cards)"
+}
+
+/** The scope name of a study button that starts a session inside one chapter. */
+const val CHAPTER_SCOPE = "chapter"
 
 /**
  * The short name of a study mode.
