@@ -1,6 +1,7 @@
 package dev.denlogv.lexislearned.domain
 
 import kotlin.random.Random
+import kotlinx.serialization.Serializable
 
 /**
  * One planned step of a card.
@@ -8,7 +9,8 @@ import kotlin.random.Random
  * @property mode the mode to practise.
  * @property retry true if this step repeats an earlier wrong answer; repeats do not count toward accuracy.
  */
-internal class PlanEntry(val mode: StudyMode, val retry: Boolean = false)
+@Serializable
+data class PlanEntry(val mode: StudyMode, val retry: Boolean = false)
 
 /**
  * The remaining steps of one card in a session, and its score so far.
@@ -16,11 +18,18 @@ internal class PlanEntry(val mode: StudyMode, val retry: Boolean = false)
  * A card's plan is every selected mode once per round. A wrong answer puts the same step back a little later, at most
  * [MAX_RETRIES] times per mode. The score is the share of graded steps answered correctly on the first try.
  *
- * @param id the card's id.
- * @param modes the modes to go through, in the order they should be practised.
+ * @property id the card's id.
+ * @param queue the steps to do, in order; the plan takes it over.
  */
-internal class CardPlan(val id: Long, modes: List<StudyMode>) {
-    private val queue = ArrayDeque(modes.map { PlanEntry(it) })
+internal class CardPlan private constructor(val id: Long, private val queue: ArrayDeque<PlanEntry>) {
+    /**
+     * A fresh plan.
+     *
+     * @param id the card's id.
+     * @param modes the modes to go through, in the order they should be practised.
+     */
+    constructor(id: Long, modes: List<StudyMode>) : this(id, ArrayDeque(modes.map { PlanEntry(it) }))
+
     private val retries = HashMap<StudyMode, Int>()
     private var graded = 0
     private var firstTry = 0
@@ -67,6 +76,13 @@ internal class CardPlan(val id: Long, modes: List<StudyMode>) {
     }
 
     /**
+     * Captures the plan, so that [restore] can continue it later.
+     *
+     * @return a copy of the remaining steps and the score so far.
+     */
+    fun snapshot(): CardPlanSnapshot = CardPlanSnapshot(id, queue.toList(), retries.toMap(), graded, firstTry, knew)
+
+    /**
      * Records an answer and schedules a repeat of the step if it was wrong.
      *
      * @param entry the step that was answered.
@@ -93,6 +109,19 @@ internal class CardPlan(val id: Long, modes: List<StudyMode>) {
     }
 
     companion object {
+        /**
+         * Rebuilds a plan from a snapshot.
+         *
+         * @param snapshot what [snapshot] returned.
+         * @return a plan that continues where the snapshot was taken.
+         */
+        fun restore(snapshot: CardPlanSnapshot): CardPlan = CardPlan(snapshot.id, ArrayDeque(snapshot.queue)).apply {
+            retries.putAll(snapshot.retries)
+            graded = snapshot.graded
+            firstTry = snapshot.firstTry
+            knew = snapshot.knew
+        }
+
         /** How many times a wrong step is repeated at most. */
         const val MAX_RETRIES = 2
 

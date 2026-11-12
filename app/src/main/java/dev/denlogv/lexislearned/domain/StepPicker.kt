@@ -9,11 +9,18 @@ import kotlin.random.Random
  * and Pair (a multi-card step) waits until at least two cards are ready for it.
  *
  * @param random source of randomness for the choice.
- * @param pairSize the most cards one Pair step contains.
+ * @property pairSize the most cards one Pair step contains.
+ * @param lastCard the card of the previous step, or null at the start of a session.
+ * @param lastMode the mode of the previous step, or null at the start of a session.
  */
-internal class StepPicker(private val random: Random, private val pairSize: Int) {
-    private var lastCard: Long? = null
-    private var lastMode: StudyMode? = null
+internal class StepPicker(private val random: Random, val pairSize: Int, lastCard: Long? = null, lastMode: StudyMode? = null) {
+    /** The card of the previous step, or null before the first one. */
+    var lastCard: Long? = lastCard
+        private set
+
+    /** The mode of the previous step, or null before the first one. */
+    var lastMode: StudyMode? = lastMode
+        private set
 
     /**
      * Picks the next step.
