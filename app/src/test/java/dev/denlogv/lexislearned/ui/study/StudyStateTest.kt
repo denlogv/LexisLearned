@@ -86,6 +86,7 @@ class StudyStateTest {
         assertEquals("Type", ui.title)
         assertEquals("1 step left · 1/2 words done", ui.statusLine)
         assertEquals("Study", ui.copy(finished = true).title)
+        assertEquals("Study", ui.copy(offering = true).title)
         assertEquals("Study", StudyUi().title)
         assertEquals(0f, StudyUi().progress, 0f)
         assertEquals("3 steps left · 0/1 word done", StudyUi(stepsLeft = 3, totalWords = 1).statusLine)

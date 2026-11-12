@@ -40,7 +40,7 @@ import dev.denlogv.lexislearned.ui.plural
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudyScreen(onBack: () -> Unit) {
-    val vm = appViewModel { app, handle -> StudyViewModel(app.study, app.settings, handle) }
+    val vm = appViewModel { app, handle -> StudyViewModel(app.study, app.settings, handle, app.sessions) }
     val ui by vm.ui.collectAsState()
     Scaffold(topBar = {
         TopAppBar(
@@ -50,6 +50,7 @@ fun StudyScreen(onBack: () -> Unit) {
     }) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
             when {
+                ui.offering -> ResumePrompt(ui.statusLine, vm::continueSession, vm::startNewSession)
                 ui.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
                 ui.finished -> Summary(ui, onBack)
                 else -> ActiveStep(ui, ui.direction, vm.actions())

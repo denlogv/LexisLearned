@@ -1,9 +1,12 @@
 package dev.denlogv.lexislearned.ui.study
 
 import androidx.lifecycle.SavedStateHandle
+import dev.denlogv.lexislearned.InlineDispatcher
 import dev.denlogv.lexislearned.MainDispatcherRule
 import dev.denlogv.lexislearned.await
 import dev.denlogv.lexislearned.data.DeckStorage
+import dev.denlogv.lexislearned.data.MemorySessionStore
+import dev.denlogv.lexislearned.data.SessionKeeper
 import dev.denlogv.lexislearned.data.Settings
 import dev.denlogv.lexislearned.data.StudyRepository
 import dev.denlogv.lexislearned.data.memoryDb
@@ -38,20 +41,18 @@ class StudyViewModelTest {
         val deckId = storage.import(sampleDeck())
         db.cardDao().cards(deckId).takeLast(studiedBefore).forEach { study.finishSession(it, Grade.GOOD, spaced = true) }
         val handle = SavedStateHandle(mapOf("deckId" to deckId, "chapterId" to chapterId, "partId" to -1L))
-        return StudyViewModel(study, settings, handle, Random(3)).also { vm -> vm.ui.await { !it.loading && it.current.isNotEmpty() } }
-    }
-
-    /** Answers the current step the way a perfect learner would and waits until the next one is shown. */
-    private suspend fun StudyViewModel.playStep() {
-        val before = ui.value.stepsDone
-        val current = ui.value
-        when (current.mode) {
-            StudyMode.LEARN -> if (current.exposure) introduced() else answer(Grade.GOOD)
-            StudyMode.PAIR -> answerPair(emptySet())
-            else -> answer(Grade.GOOD)
+        return StudyViewModel(
+            study,
+            settings,
+            handle,
+            SessionKeeper(MemorySessionStore(), dispatcher = InlineDispatcher),
+            Random(3),
+        ).also { vm ->
+            vm.ui.await {
+                !it.loading &&
+                    it.current.isNotEmpty()
+            }
         }
-        ui.await { it.stepsDone > before }
-        ui.await { it.finished || it.current.isNotEmpty() }
     }
 
     @Test
@@ -59,7 +60,7 @@ class StudyViewModelTest {
         val vm = start()
         assertEquals(4, vm.ui.value.totalWords)
         assertEquals(Direction.FORWARD, vm.ui.value.direction)
-        while (!vm.ui.value.finished) vm.playStep()
+        vm.playToEnd()
         val ui = vm.ui.value
         assertEquals(4, ui.completedWords)
         assertEquals(0, ui.wrong)
@@ -82,11 +83,13 @@ class StudyViewModelTest {
         StudyMode.entries.filter { it != StudyMode.TYPE }.forEach(settings::toggleMode)
         val vm = start()
         assertEquals(StudyMode.TYPE, vm.ui.value.mode)
-        val stepsBefore = vm.ui.value.stepsLeft
+        val first = vm.ui.value
+        val stepsBefore = first.stepsLeft
         vm.answer(Grade.AGAIN)
-        vm.ui.await { it.wrong == 1 && it.stepsDone == 1 }
+        vm.awaitNextStep(first)
+        assertEquals(1, vm.ui.value.wrong)
         assertTrue(vm.ui.value.stepsLeft >= stepsBefore)
-        while (!vm.ui.value.finished) vm.playStep()
+        vm.playToEnd()
         assertEquals(1, vm.ui.value.completedWords)
     }
 
@@ -117,7 +120,7 @@ class StudyViewModelTest {
     @Test
     fun emptyLibraryMeansNothingToStudy() = runBlocking {
         val handle = SavedStateHandle(mapOf("deckId" to 77L, "chapterId" to -1L, "partId" to -1L))
-        val vm = StudyViewModel(study, settings, handle, Random(1))
+        val vm = StudyViewModel(study, settings, handle, SessionKeeper(MemorySessionStore(), dispatcher = InlineDispatcher), Random(1))
         val ui = vm.ui.await { it.finished }
         assertEquals(0, ui.totalWords)
         vm.answer(Grade.GOOD)
@@ -133,7 +136,19 @@ class StudyViewModelTest {
         val deckId = storage.import(sampleDeck())
         val chapter = if (chapterId < 0) -1L else db.structureDao().chapters(deckId)[chapterId.toInt()].id
         val handle = SavedStateHandle(mapOf("deckId" to deckId, "chapterId" to chapter, "partId" to -1L))
-        return StudyViewModel(study, settings, handle, Random(3), now).also { vm -> vm.ui.await { !it.loading && it.current.isNotEmpty() } }
+        return StudyViewModel(
+            study,
+            settings,
+            handle,
+            SessionKeeper(MemorySessionStore(), dispatcher = InlineDispatcher),
+            Random(3),
+            now,
+        ).also { vm ->
+            vm.ui.await {
+                !it.loading &&
+                    it.current.isNotEmpty()
+            }
+        }
     }
 
     /** Answers the current Type step and returns the state once the next step, and the estimate for it, is on screen. */
@@ -198,7 +213,7 @@ class StudyViewModelTest {
         val deckId = storage.import(sampleDeck())
         val chapter = db.structureDao().chapters(deckId)[1].id
         val handle = SavedStateHandle(mapOf("deckId" to deckId, "chapterId" to chapter, "partId" to -1L))
-        val vm = StudyViewModel(study, settings, handle, Random(3))
+        val vm = StudyViewModel(study, settings, handle, SessionKeeper(MemorySessionStore(), dispatcher = InlineDispatcher), Random(3))
         assertEquals(4, vm.ui.await { !it.loading }.totalWords)
     }
 }

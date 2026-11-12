@@ -2,9 +2,12 @@ package dev.denlogv.lexislearned.ui.study
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.room.Room
+import dev.denlogv.lexislearned.InlineDispatcher
 import dev.denlogv.lexislearned.MainDispatcherRule
 import dev.denlogv.lexislearned.data.AppDatabase
 import dev.denlogv.lexislearned.data.DeckStorage
+import dev.denlogv.lexislearned.data.MemorySessionStore
+import dev.denlogv.lexislearned.data.SessionKeeper
 import dev.denlogv.lexislearned.data.StudyRepository
 import dev.denlogv.lexislearned.data.testContext
 import dev.denlogv.lexislearned.data.testSettings
@@ -50,7 +53,8 @@ class StudyStartTest {
         StudyMode.entries.filter { it != StudyMode.PAIR }.forEach(settings::toggleMode)
         val handle = SavedStateHandle(mapOf("deckId" to deckId, "chapterId" to -1L, "partId" to -1L))
         gate.gated = true
-        val vm = StudyViewModel(study, settings, handle, Random(3))
+        val vm =
+            StudyViewModel(study, settings, handle, SessionKeeper(MemorySessionStore(), dispatcher = InlineDispatcher), Random(3))
         // A Pair step needs filler words from the database, so its first step is ready only after several queries.
         val shown = mutableListOf(vm.ui.value)
         while (gate.held.isNotEmpty()) {
