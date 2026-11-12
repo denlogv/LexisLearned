@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
  */
 @Suppress("TooManyFunctions") // One setter per preference.
 class Settings(private val sp: SharedPreferences, private val secrets: Secrets = KeystoreSecrets(sp)) {
+    private val chapterChoice = WholeChapterChoice(sp, numbersStored = sp.contains(SESSION_SIZE) || sp.contains(NEW_PER_SESSION))
     private val _prefs = MutableStateFlow(load())
 
     /** The current settings. */
@@ -39,18 +40,34 @@ class Settings(private val sp: SharedPreferences, private val secrets: Secrets =
     }
 
     /**
+     * Sets whether a session takes every studyable word of one chapter instead of a fixed number of words.
+     *
+     * @param on true for whole chapters; false to use [setSessionSize] and [setNewPerSession].
+     */
+    fun setWholeChapter(on: Boolean) {
+        chapterChoice.choose(on)
+        _prefs.value = load()
+    }
+
+    /** Records that the one-time suggestion to use whole chapters was answered or dismissed, so it never comes back. */
+    fun markWholeChapterSuggestionSeen() {
+        chapterChoice.markSuggestionSeen()
+        _prefs.value = load()
+    }
+
+    /**
      * Sets how many words one session contains.
      *
-     * @param n the number of words.
+     * @param n the number of words, limited to [SESSION_SIZE_RANGE].
      */
-    fun setSessionSize(n: Int) = edit { putInt(SESSION_SIZE, n) }
+    fun setSessionSize(n: Int) = edit { putInt(SESSION_SIZE, n.coerceIn(SESSION_SIZE_RANGE)) }
 
     /**
      * Sets how many never-studied words a session may add.
      *
-     * @param n the number of words.
+     * @param n the number of words, limited to [NEW_PER_SESSION_RANGE].
      */
-    fun setNewPerSession(n: Int) = edit { putInt(NEW_PER_SESSION, n) }
+    fun setNewPerSession(n: Int) = edit { putInt(NEW_PER_SESSION, n.coerceIn(NEW_PER_SESSION_RANGE)) }
 
     /**
      * Sets how many times each word goes through all modes in a session.
@@ -193,8 +210,10 @@ class Settings(private val sp: SharedPreferences, private val secrets: Secrets =
         modes = sp.getString(MODES, null)?.split(',')
             ?.mapNotNull { name -> StudyMode.entries.firstOrNull { it.name == name } }?.toSet()
             ?.takeIf { it.isNotEmpty() } ?: base.modes,
-        sessionSize = sp.getInt(SESSION_SIZE, base.sessionSize),
-        newPerSession = sp.getInt(NEW_PER_SESSION, base.newPerSession),
+        wholeChapter = chapterChoice.isOn,
+        suggestWholeChapter = chapterChoice.shouldSuggest,
+        sessionSize = sp.getInt(SESSION_SIZE, base.sessionSize).coerceIn(SESSION_SIZE_RANGE),
+        newPerSession = sp.getInt(NEW_PER_SESSION, base.newPerSession).coerceIn(NEW_PER_SESSION_RANGE),
         rounds = sp.getInt(ROUNDS, base.rounds),
         pairSize = sp.getInt(PAIR_SIZE, base.pairSize).coerceIn(PAIR_SIZE_RANGE),
         sessionsToComplete = sp.getInt(SESSIONS_TO_COMPLETE, base.sessionsToComplete),

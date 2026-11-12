@@ -23,6 +23,7 @@ class SettingsTest {
         assertEquals(6, p.pairSize)
         assertTrue(p.showTimeLeft)
         assertEquals(1, p.timeLeftAfter)
+        assertTrue(p.wholeChapter)
         assertFalse(p.hasApiKey)
         assertEquals(Provider.ANTHROPIC.defaultModel, p.model)
     }
@@ -136,5 +137,35 @@ class SettingsTest {
         assertFalse(settings.prefs.value.ready)
         settings.setApiKey(Provider.ANTHROPIC, "k")
         assertTrue(settings.prefs.value.ready)
+    }
+
+    @Test
+    fun sessionNumbersAreClampedWhenSet() {
+        settings.setSessionSize(0)
+        settings.setNewPerSession(-4)
+        assertEquals(SESSION_SIZE_RANGE.first, settings.prefs.value.sessionSize)
+        assertEquals(NEW_PER_SESSION_RANGE.first, settings.prefs.value.newPerSession)
+        settings.setSessionSize(5_000)
+        settings.setNewPerSession(Int.MAX_VALUE)
+        assertEquals(MAX_SESSION_CARDS, settings.prefs.value.sessionSize)
+        assertEquals(MAX_SESSION_CARDS, settings.prefs.value.newPerSession)
+        settings.setSessionSize(250)
+        settings.setNewPerSession(0)
+        assertEquals(250, settings.prefs.value.sessionSize)
+        assertEquals(0, settings.prefs.value.newPerSession)
+    }
+
+    @Test
+    fun sessionNumbersStoredOutOfRangeAreClampedWhenLoaded() {
+        val p = settingsOver(preparedPrefs("sessionSize" to 0, "newPerSession" to 123_456)).prefs.value
+        assertEquals(1, p.sessionSize)
+        assertEquals(MAX_SESSION_CARDS, p.newPerSession)
+    }
+
+    @Test
+    fun sessionNumbersChosenBeforeAreKept() {
+        val p = settingsOver(preparedPrefs("sessionSize" to 25, "newPerSession" to 8)).prefs.value
+        assertEquals(25, p.sessionSize)
+        assertEquals(8, p.newPerSession)
     }
 }
