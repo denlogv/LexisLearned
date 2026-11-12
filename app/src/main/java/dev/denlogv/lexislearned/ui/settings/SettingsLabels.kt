@@ -8,14 +8,19 @@ import dev.denlogv.lexislearned.ui.plural
  * Explains how long a full study session is.
  *
  * @param prefs the session settings.
- * @return a sentence such as "A full session is about 30 steps (10 words × 3 modes × 1 round)."
+ * @return a sentence such as "A full session is about 30 steps (10 words × 3 modes × 1 round)."; with whole chapters the
+ * number of words is not known here, so it says what one word takes instead.
  */
 fun sessionSummary(prefs: Prefs): String {
-    val steps = plural(prefs.sessionSize * prefs.rounds * prefs.modes.size, "step")
-    val words = plural(prefs.sessionSize, "word")
     val modes = plural(prefs.modes.size, "mode")
     val rounds = plural(prefs.rounds, "round")
-    return "A full session is about $steps ($words × $modes × $rounds). Choose the modes on a book, part or chapter screen."
+    val advice = "Choose the modes on a book, part or chapter screen."
+    if (prefs.wholeChapter) {
+        val perWord = plural(prefs.rounds * prefs.modes.size, "step")
+        return "A session is all words of a chapter, and each word takes about $perWord ($modes × $rounds). $advice"
+    }
+    val steps = plural(prefs.sessionSize * prefs.rounds * prefs.modes.size, "step")
+    return "A full session is about $steps (${plural(prefs.sessionSize, "word")} × $modes × $rounds). $advice"
 }
 
 /**
@@ -54,11 +59,14 @@ fun rulesFieldLabel(levelLabel: String, customised: Boolean): String =
  * The one-line summary of the study settings on the settings overview.
  *
  * @param prefs the settings.
- * @return for example "10 cards per session · 5 new · 1 round · pairs of 6".
+ * @return for example "10 cards per session · 5 new · 1 round · pairs of 6", or "All words of a chapter per session · 1 round ·
+ * pairs of 6" when a session is a whole chapter.
  */
-fun studySummary(prefs: Prefs): String =
-    "${plural(prefs.sessionSize, "card")} per session · ${prefs.newPerSession} new · ${plural(prefs.rounds, "round")} · " +
-        "pairs of ${prefs.pairSize}"
+fun studySummary(prefs: Prefs): String {
+    val size = if (prefs.wholeChapter) "All words of a chapter per session" else "${plural(prefs.sessionSize, "card")} per session"
+    val fresh = if (prefs.wholeChapter) null else "${prefs.newPerSession} new"
+    return listOfNotNull(size, fresh, plural(prefs.rounds, "round"), "pairs of ${prefs.pairSize}").joinToString(" · ")
+}
 
 /**
  * The one-line summary of the deck generation settings on the settings overview.

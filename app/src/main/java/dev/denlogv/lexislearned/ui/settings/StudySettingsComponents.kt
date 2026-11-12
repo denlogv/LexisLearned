@@ -6,24 +6,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.denlogv.lexislearned.data.NEW_PER_SESSION_RANGE
 import dev.denlogv.lexislearned.data.PAIR_SIZE_RANGE
 import dev.denlogv.lexislearned.data.Prefs
+import dev.denlogv.lexislearned.data.SESSION_SIZE_RANGE
 import dev.denlogv.lexislearned.data.Settings
 import dev.denlogv.lexislearned.data.TIME_LEFT_AFTER_RANGE
-import kotlin.math.roundToInt
-
-/** How many cards one study session may hold. */
-private val SESSION_SIZE_RANGE = 3..30
-
-/** How many unseen cards one study session may add. */
-private val NEW_PER_SESSION_RANGE = 0..20
 
 /** How many times a session may repeat each word. */
 private val ROUNDS_RANGE = 1..5
@@ -105,7 +99,7 @@ private fun ColumnScope.TimeLeftSettings(prefs: Prefs, settings: Settings) {
 }
 
 /**
- * The controls for the length of a session: its cards, how many of them are new and how often each is repeated.
+ * The controls for the length of a session: whole chapters or a number of cards, and how often each word is repeated.
  *
  * @receiver the group the controls are placed in.
  * @param prefs the current settings.
@@ -113,8 +107,19 @@ private fun ColumnScope.TimeLeftSettings(prefs: Prefs, settings: Settings) {
  */
 @Composable
 private fun ColumnScope.SessionLength(prefs: Prefs, settings: Settings) {
-    SliderSetting("Cards per session", prefs.sessionSize, SESSION_SIZE_RANGE, settings::setSessionSize)
-    SliderSetting("New cards per session", prefs.newPerSession, NEW_PER_SESSION_RANGE, settings::setNewPerSession)
+    SwitchSetting(
+        "Whole chapter in one session",
+        "On: a session takes every word of one chapter, the due ones first and then the new ones. Started from a book or a " +
+            "part, it takes the first chapter that has words to study, and the next session the chapter after it.",
+        prefs.wholeChapter,
+        settings::setWholeChapter,
+    )
+    if (prefs.wholeChapter) {
+        Hint("The number of cards and of new cards per session count only while this is off.")
+    } else {
+        CountSetting("Cards per session", prefs.sessionSize, SESSION_SIZE_RANGE, settings::setSessionSize)
+        CountSetting("New cards per session", prefs.newPerSession, NEW_PER_SESSION_RANGE, settings::setNewPerSession)
+    }
     Stepper(
         "Rounds per session",
         prefs.rounds,
@@ -123,27 +128,6 @@ private fun ColumnScope.SessionLength(prefs: Prefs, settings: Settings) {
         "How many times each word goes through all selected modes in one session.",
     )
     Hint(sessionSummary(prefs))
-}
-
-/**
- * A labelled number that is picked on a slider.
- *
- * @param label what the number is; the current value is added to it.
- * @param value the current value.
- * @param range the allowed values; the slider has a stop for each.
- * @param onChange called with the new value.
- */
-@Composable
-private fun SliderSetting(label: String, value: Int, range: IntRange, onChange: (Int) -> Unit) {
-    Column {
-        Text("$label: $value")
-        Slider(
-            value.toFloat(),
-            { onChange(it.roundToInt()) },
-            valueRange = range.first.toFloat()..range.last.toFloat(),
-            steps = range.last - range.first - 1,
-        )
-    }
 }
 
 /**
