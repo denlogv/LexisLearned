@@ -59,6 +59,23 @@ class StudyRepositoryTest {
     }
 
     @Test
+    fun remainingSessionsSumWhatEachWordStillLacks() = runBlocking {
+        val id = storage.import(partedDeck())
+        val chapter = library.chapters(id, 3).first()[0]
+        val part = library.parts(id).first().single()
+        assertEquals(12, study.remainingSessions(id, null, null, 1))
+        assertEquals(36, study.remainingSessions(id, null, null, 3))
+        assertEquals(12, study.remainingSessions(id, chapter.id, null, 3))
+        assertEquals(24, study.remainingSessions(id, null, part.id, 3))
+        val (a, b) = cardsOf(id)
+        study.finishSession(a, Grade.GOOD, spaced = true)
+        study.finishSession(b, Grade.AGAIN, spaced = true) // a failed session does not count
+        assertEquals(11, study.remainingSessions(id, null, null, 1))
+        assertEquals(35, study.remainingSessions(id, null, null, 3))
+        assertEquals(0, study.remainingSessions(id, chapter.id, null, 0))
+    }
+
+    @Test
     fun finishSessionSchedulesAndCountsSessions() = runBlocking {
         val id = storage.import(sampleDeck())
         val (a, b, c) = cardsOf(id)

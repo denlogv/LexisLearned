@@ -40,6 +40,19 @@ class StudyRepository(
     }
 
     /**
+     * How many more word sessions it takes to complete every word in a book, part or chapter. A new word needs all of the
+     * sessions, a word in progress only those it lacks.
+     *
+     * @param deckId the deck.
+     * @param chapterId restrict to this chapter, or null for all.
+     * @param partId restrict to this part, or null for all.
+     * @param needed the number of sessions that completes a word.
+     * @return the sessions still to do, summed over the words; 0 when everything is completed.
+     */
+    suspend fun remainingSessions(deckId: Long, chapterId: Long?, partId: Long?, needed: Int): Int =
+        cards.remainingSessions(deckId, chapterId ?: NO_FILTER, partId ?: NO_FILTER, needed)
+
+    /**
      * Wrong answers for Select: other words from the same chapter first, the rest of the book only if needed.
      *
      * @param card the word being asked.
