@@ -61,6 +61,23 @@ interface CardDao {
     suspend fun newCards(deckId: Long, chapterId: Long, partId: Long, limit: Int): List<CardEntity>
 
     /**
+     * How many more word sessions it takes to complete every word in the scope: the sessions each word still lacks, summed.
+     *
+     * @param deckId the deck.
+     * @param chapterId restrict to this chapter, or a negative number for all.
+     * @param partId restrict to this part, or a negative number for all.
+     * @param needed the number of sessions that completes a word.
+     * @return the sum, 0 when every word is completed.
+     */
+    @Query(
+        """SELECT COALESCE(SUM(:needed - sessionsDone), 0) FROM cards WHERE deckId = :deckId
+        AND (:chapterId < 0 OR chapterId = :chapterId)
+        AND (:partId < 0 OR chapterId IN (SELECT id FROM chapters WHERE partId = :partId))
+        AND sessionsDone < :needed""",
+    )
+    suspend fun remainingSessions(deckId: Long, chapterId: Long, partId: Long, needed: Int): Int
+
+    /**
      * Random cards of a chapter, for filler tiles and wrong answers.
      *
      * @param chapterId the chapter.
